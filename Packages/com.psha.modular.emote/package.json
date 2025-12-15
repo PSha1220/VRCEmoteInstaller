@@ -1,0 +1,16 @@
+{
+  "name": "com.psha.modular.emote",
+  "displayName": "ModularEmote",
+  "version": "1.0.1",
+  "unity": "2022.3",
+  "description": "NDMF-based, non-destructive VRChat emote installer (menu + Action/FX patch).",
+  "author": {
+    "name": "Psha",
+    "email": "Polysha1220@gmail.com",
+    "url": "https://x.com/P_ConnectStore"
+  },
+  "vpmDependencies": {
+    "com.vrchat.avatars": "3.10.1",
+    "nadena.dev.ndmf": "^1.0.0"
+  }
+}
