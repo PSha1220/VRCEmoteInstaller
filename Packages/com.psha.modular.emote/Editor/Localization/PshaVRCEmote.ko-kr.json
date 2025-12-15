@@ -1,0 +1,96 @@
+{
+
+  "psha.tt.target_menu": "커스터마이즈할 VRC 이모트 메뉴입니다. 비워두면 빌드 시 자동 탐지됩니다.",
+  "psha.tt.emote_name": "VRC 이모트 메뉴에 표시될 이름입니다.",
+  "psha.tt.menu_icon": "VRC 이모트 메뉴에 표시될 아이콘입니다.",
+  "psha.tt.type": "컨트롤 타입입니다. None은 기존 타입을 유지합니다.",
+  "psha.tt.avatar_action_layer": "아바타 Action 레이어 컨트롤러입니다. 비워두면 디스크립터 설정을 사용합니다.",
+  "psha.tt.avatar_fx_layer": "아바타 FX 레이어 컨트롤러입니다.",
+  "psha.tt.me_action_layer": "병합할 ME Action 템플릿 컨트롤러입니다.",
+  "psha.tt.me_fx_layer": "병합할 ME FX 템플릿 컨트롤러입니다.",
+  "psha.tt.start_action_state": "Action 레이어에서 이모트 분기를 시작하는 스테이트 이름입니다.",
+  "psha.tt.end_action_state": "Action 레이어에서 이모트 분기를 종료하는 스테이트 이름입니다.",
+  "psha.tt.track_action_sub_sm": "Start/End와 VRCEmote 조건을 기반으로 액션 병합 스코프를 자동 추적합니다.",
+  "psha.tt.action_sub_sm_root": "액션 병합을 적용할 서브 스테이트머신의 이름/경로입니다.",
+  "psha.tt.me_write_defaults_off": "ME 레이어 내 모든 State의 Write Defaults를 OFF로 강제합니다.",
+  "psha.tt.use_merge_me_fx": "ME FX 병합 템플릿을 사용합니다.",
+  "psha.tt.additional_me_fx": "추가 ME FX 레이어(최대 2개)를 더 병합합니다.",
+  "psha.tt.layer_count": "추가 ME FX 레이어 개수입니다.",
+  "psha.tt.replace_me_menu_icon": "VRC Emote 메뉴 아이콘을 ME 아이콘으로 교체합니다.",
+
+  "psha.vrc_emote_settings": "VRC 이모트 설정",
+
+  "psha.content": "콘텐츠",
+  "psha.name": "이름",
+  "psha.no_name": "(이름 없음)",
+  "psha.no_icon": "아이콘 없음",
+  "psha.target_slot": "적용할 슬롯 번호 (1~8)",
+
+  "psha.dev_options": "개발자 옵션",
+  "psha.target_menu": "대상 VRC 이모트 메뉴",
+
+  "psha.menu_settings": "메뉴 설정",
+  "psha.emote_name": "이모트 이름",
+  "psha.menu_icon": "메뉴 아이콘",
+  "psha.type": "타입",
+  "psha.value": "값",
+  "psha.parameter": "파라미터",
+
+  "psha.avatar_layer_settings": "아바타 레이어 설정",
+  "psha.avatar_action_layer": "아바타 Action 레이어",
+  "psha.avatar_fx_layer": "아바타 FX 레이어",
+
+  "psha.me_merge_settings": "ME 레이어 병합 설정",
+  "psha.me_action_layer": "ME Action 레이어",
+  "psha.me_fx_layer": "ME FX 레이어",
+
+  "psha.state_settings": "스테이트 설정",
+  "psha.start_action_state": "시작 액션 스테이트",
+  "psha.end_action_state": "종료 액션 스테이트",
+  "psha.action_sub_sm_root": "액션 SM 루트",
+  "psha.action_sub_sm_root_empty_warn": "액션 서브 스테이트머신 경로가 비어 있습니다.\n'Setup VRC Emote'를 누르거나 루트 이름을 직접 입력하세요.",
+
+  "psha.me_write_defaults_off": "ME Write Default OFF",
+
+  "psha.advanced_options": "고급 옵션",
+  "psha.track_action_sub_sm": "액션 루트 정밀추적",
+  "psha.use_merge_me_fx": "병합 ME FX 사용",
+  "psha.additional_me_fx": "+ 추가 ME FX",
+  "psha.additional_fx_perf_info": "여러 FX 레이어 사용은 아바타 애니메이션 성능/최적화에 악영향을 줄 수 있습니다.\n필요할 때만 추가 ME FX 레이어를 사용하세요.",
+  "psha.layer_count": "레이어 개수",
+  "psha.me_fx_layer_n": " + ME FX 레이어 {0}",
+
+  "psha.replace_me_menu_icon": "ME 메뉴 아이콘 교체",
+  "psha.replace_me_menu_icon_tt": "VRC Emote 메뉴 아이콘을 ME 아이콘으로 교체합니다.",
+
+  "psha.btn_setup": "VRC Emote 설정",
+  "psha.btn_default": "기본값",
+  "psha.undo_reset": "Psha VRC Emote Installer 초기화",
+
+  "psha.preview_foldout": "적용 변경사항 표시 (프리뷰)",
+  "psha.preview_name_before": "이름 (전)",
+  "psha.preview_name_after": "이름 (후)",
+  "psha.preview_type_before": "타입 (전)",
+  "psha.preview_type_after": "타입 (후)",
+
+  "psha.warn_need_descriptor": "이 컴포넌트가 제대로 동작하려면 VRCAvatarDescriptor가 있는 아바타 오브젝트 아래에 있어야 합니다.\n이 오브젝트를 아바타 루트(디스크립터가 있는 GameObject) 아래로 옮기세요.",
+  "psha.warn_name_mismatch": "이모트 이름이 GameObject 이름과 일치하지 않습니다.\nME FX 레이어 사용 시 결과가 달라질 수 있습니다.\n'Setup VRC Emote'를 누르거나 이름을 일치시키세요.",
+  "psha.no_gameobject": "(오브젝트 없음)",
+  "psha.warn_shared_fx": "여러 ME 이모트가 같은 ME FX 레이어를 공유하고 있습니다.\nME FX 레이어 사용 시 결과가 달라질 수 있습니다.\n중복 ME FX 레이어 오브젝트 이름: {0}",
+
+  "psha.no_descriptor_short": "부모 VRCAvatarDescriptor를 찾지 못했습니다.",
+  "psha.menu_empty": "아바타 Expressions Menu가 비어 있습니다.",
+
+  "psha.preview_no_menu": "대상 VRC 이모트 메뉴가 비어 있고, 아바타에서 이모트 메뉴 자동 탐지에도 실패했습니다.",
+  "psha.preview_target_no_controls": "대상 VRC 이모트 메뉴에 컨트롤이 없습니다.",
+  "psha.preview_menu_no_controls": "프리뷰 메뉴에 컨트롤이 없습니다.",
+  "psha.preview_no_installers": "활성화된 PshaVRCEmoteInstaller가 없어 프리뷰할 내용이 없습니다.",
+  "psha.preview_auto_detected": "프리뷰용 이모트 메뉴를 자동 탐지했습니다: {0}",
+  "psha.preview_menu": "프리뷰 메뉴: {0}",
+
+  "psha.dialog_setup_title": "Setup VRC Emote",
+  "psha.dialog_no_descriptor": "부모 VRCAvatarDescriptor를 찾지 못했습니다.\n이 오브젝트가 아바타 루트 아래에 있는지 확인하세요.",
+  "psha.dialog_menu_not_assigned": "아바타 Expressions Menu가 할당되어 있지 않습니다.",
+  "psha.dialog_failed_auto_detect_menu": "이모트 메뉴 자동 탐지에 실패했습니다.\n대상 VRC 이모트 메뉴를 수동으로 지정하세요.",
+  "psha.ok": "확인"
+}

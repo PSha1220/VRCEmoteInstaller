@@ -1,0 +1,95 @@
+{
+  "psha.tt.target_menu": "要自訂的 VRC 表情選單。未指定時將於建置時自動偵測。",
+  "psha.tt.emote_name": "顯示於 VRC 表情選單中的名稱。",
+  "psha.tt.menu_icon": "顯示於 VRC 表情選單中的圖示。",
+  "psha.tt.type": "控制類型。None 將保留原有類型。",
+  "psha.tt.avatar_action_layer": "Avatar 的 Action 圖層控制器。未指定時使用描述器中的設定。",
+  "psha.tt.avatar_fx_layer": "Avatar 的 FX 圖層控制器。",
+  "psha.tt.me_action_layer": "要合併的 ME Action 範本控制器。",
+  "psha.tt.me_fx_layer": "要合併的 ME FX 範本控制器。",
+  "psha.tt.start_action_state": "Action 圖層中開始表情分支的狀態名稱。",
+  "psha.tt.end_action_state": "Action 圖層中結束表情分支的狀態名稱。",
+  "psha.tt.track_action_sub_sm": "根據 Start / End 與 VRCEmote 條件自動偵測動作合併範圍。",
+  "psha.tt.action_sub_sm_root": "作為動作合併範圍的子狀態機名稱或路徑。",
+  "psha.tt.me_write_defaults_off": "強制將 ME 圖層中所有 State 的 Write Defaults 設為 OFF。",
+  "psha.tt.use_merge_me_fx": "使用 ME FX 合併範本。",
+  "psha.tt.additional_me_fx": "合併額外的 ME FX 圖層（最多 2 個）。",
+  "psha.tt.layer_count": "額外 ME FX 圖層的數量。",
+  "psha.tt.replace_me_menu_icon": "將 VRC 表情選單圖示替換為 ME 圖示。",
+
+  "psha.vrc_emote_settings": "VRC 表情設定",
+
+  "psha.content": "內容",
+  "psha.name": "名稱",
+  "psha.no_name": "(無名稱)",
+  "psha.no_icon": "無圖示",
+  "psha.target_slot": "套用插槽編號 (1～8)",
+
+  "psha.dev_options": "開發者選項",
+  "psha.target_menu": "目標 VRC 表情選單",
+
+  "psha.menu_settings": "選單設定",
+  "psha.emote_name": "表情名稱",
+  "psha.menu_icon": "選單圖示",
+  "psha.type": "類型",
+  "psha.value": "值",
+  "psha.parameter": "參數",
+
+  "psha.avatar_layer_settings": "Avatar 圖層設定",
+  "psha.avatar_action_layer": "Avatar Action 圖層",
+  "psha.avatar_fx_layer": "Avatar FX 圖層",
+
+  "psha.me_merge_settings": "ME 圖層合併設定",
+  "psha.me_action_layer": "ME Action 圖層",
+  "psha.me_fx_layer": "ME FX 圖層",
+
+  "psha.state_settings": "狀態設定",
+  "psha.start_action_state": "開始 Action 狀態",
+  "psha.end_action_state": "結束 Action 狀態",
+  "psha.action_sub_sm_root": "Action SM 根",
+  "psha.action_sub_sm_root_empty_warn": "尚未指定 Action 子狀態機。\n請執行「Setup VRC Emote」，或手動輸入根名稱。",
+
+  "psha.me_write_defaults_off": "ME Write Defaults OFF",
+
+  "psha.advanced_options": "進階選項",
+  "psha.track_action_sub_sm": "自動追蹤動作合併範圍",
+  "psha.use_merge_me_fx": "使用 ME FX 合併",
+  "psha.additional_me_fx": "+ 額外 ME FX",
+  "psha.additional_fx_perf_info": "使用多個 FX 圖層可能會影響 Avatar 的動畫效能與最佳化。\n請僅在必要時使用額外的 ME FX 圖層。",
+  "psha.layer_count": "圖層數量",
+  "psha.me_fx_layer_n": "+ ME FX 圖層 {0}",
+
+  "psha.replace_me_menu_icon": "替換為 ME 選單圖示",
+  "psha.replace_me_menu_icon_tt": "將 VRC 表情選單圖示替換為 ME 圖示。",
+
+  "psha.btn_setup": "Setup VRC Emote",
+  "psha.btn_default": "預設",
+  "psha.undo_reset": "重設 Psha VRC Emote Installer",
+
+  "psha.preview_foldout": "顯示套用內容（預覽）",
+  "psha.preview_name_before": "名稱（前）",
+  "psha.preview_name_after": "名稱（後）",
+  "psha.preview_type_before": "類型（前）",
+  "psha.preview_type_after": "類型（後）",
+
+  "psha.warn_need_descriptor": "要正確使用此元件，必須將其放置於具有 VRCAvatarDescriptor 的 Avatar 物件下。\n請將此物件移至 Avatar 根物件。",
+  "psha.warn_name_mismatch": "表情名稱與 GameObject 名稱不一致。\n使用 ME FX 圖層時結果可能會有所不同。\n請執行「Setup VRC Emote」或使名稱一致。",
+  "psha.no_gameobject": "(無物件)",
+  "psha.warn_shared_fx": "多個 ME 表情正在共用同一個 ME FX 圖層。\n使用 ME FX 圖層時結果可能會有所不同。\n重複的 ME FX 圖層物件名稱：{0}",
+
+  "psha.no_descriptor_short": "找不到父層 VRCAvatarDescriptor。",
+  "psha.menu_empty": "Avatar 的 Expressions Menu 為空。",
+
+  "psha.preview_no_menu": "目標 VRC 表情選單為空，且自動偵測失敗。",
+  "psha.preview_target_no_controls": "目標 VRC 表情選單中沒有控制項。",
+  "psha.preview_menu_no_controls": "預覽選單中沒有控制項。",
+  "psha.preview_no_installers": "沒有啟用的 PshaVRCEmoteInstaller，無法進行預覽。",
+  "psha.preview_auto_detected": "已自動偵測用於預覽的表情選單：{0}",
+  "psha.preview_menu": "預覽選單：{0}",
+
+  "psha.dialog_setup_title": "Setup VRC Emote",
+  "psha.dialog_no_descriptor": "找不到父層 VRCAvatarDescriptor。\n請確認該物件位於 Avatar 根物件下。",
+  "psha.dialog_menu_not_assigned": "尚未指派 Avatar 的 Expressions Menu。",
+  "psha.dialog_failed_auto_detect_menu": "自動偵測表情選單失敗。\n請手動指定目標 VRC 表情選單。",
+  "psha.ok": "確定"
+}

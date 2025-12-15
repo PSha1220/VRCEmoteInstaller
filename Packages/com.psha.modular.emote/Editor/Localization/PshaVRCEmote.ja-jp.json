@@ -1,0 +1,95 @@
+{
+  "psha.tt.target_menu": "カスタマイズ対象の VRC エモートメニュー。未指定の場合はビルド時に自動検出されます。",
+  "psha.tt.emote_name": "VRC エモートメニューに表示される名前。",
+  "psha.tt.menu_icon": "VRC エモートメニューに表示されるアイコン。",
+  "psha.tt.type": "コントロールタイプ。None の場合は既存のタイプを保持します。",
+  "psha.tt.avatar_action_layer": "アバターの Action レイヤーコントローラ。未指定の場合はディスクリプタ設定を使用します。",
+  "psha.tt.avatar_fx_layer": "アバターの FX レイヤーコントローラ。",
+  "psha.tt.me_action_layer": "マージする ME Action テンプレートコントローラ。",
+  "psha.tt.me_fx_layer": "マージする ME FX テンプレートコントローラ。",
+  "psha.tt.start_action_state": "Action レイヤーでエモート分岐を開始するステート名。",
+  "psha.tt.end_action_state": "Action レイヤーでエモート分岐を終了するステート名。",
+  "psha.tt.track_action_sub_sm": "Start / End と VRCEmote 条件をもとに、アクションのマージ範囲を自動検出します。",
+  "psha.tt.action_sub_sm_root": "アクションのマージ対象となるサブステートマシンの名前またはパス。",
+  "psha.tt.me_write_defaults_off": "ME レイヤー内のすべての State で Write Defaults を OFF にします。",
+  "psha.tt.use_merge_me_fx": "ME FX マージテンプレートを使用します。",
+  "psha.tt.additional_me_fx": "追加の ME FX レイヤーをマージします（最大 2）。",
+  "psha.tt.layer_count": "追加する ME FX レイヤーの数。",
+  "psha.tt.replace_me_menu_icon": "VRC エモートメニューのアイコンを ME アイコンに置き換えます。",
+
+  "psha.vrc_emote_settings": "VRC エモート設定",
+
+  "psha.content": "コンテンツ",
+  "psha.name": "名前",
+  "psha.no_name": "(名前なし)",
+  "psha.no_icon": "アイコンなし",
+  "psha.target_slot": "適用スロット番号 (1～8)",
+
+  "psha.dev_options": "開発者オプション",
+  "psha.target_menu": "対象 VRC エモートメニュー",
+
+  "psha.menu_settings": "メニュー設定",
+  "psha.emote_name": "エモート名",
+  "psha.menu_icon": "メニューアイコン",
+  "psha.type": "タイプ",
+  "psha.value": "値",
+  "psha.parameter": "パラメータ",
+
+  "psha.avatar_layer_settings": "アバターレイヤー設定",
+  "psha.avatar_action_layer": "アバター Action レイヤー",
+  "psha.avatar_fx_layer": "アバター FX レイヤー",
+
+  "psha.me_merge_settings": "ME レイヤーマージ設定",
+  "psha.me_action_layer": "ME Action レイヤー",
+  "psha.me_fx_layer": "ME FX レイヤー",
+
+  "psha.state_settings": "ステート設定",
+  "psha.start_action_state": "開始アクションステート",
+  "psha.end_action_state": "終了アクションステート",
+  "psha.action_sub_sm_root": "Action SM ルート",
+  "psha.action_sub_sm_root_empty_warn": "アクション用サブステートマシンが未指定です。\n「Setup VRC Emote」を実行するか、ルート名を手動で入力してください。",
+
+  "psha.me_write_defaults_off": "ME Write Defaults OFF",
+
+  "psha.advanced_options": "詳細オプション",
+  "psha.track_action_sub_sm": "アクションマージ範囲の自動追跡",
+  "psha.use_merge_me_fx": "ME FX マージを使用",
+  "psha.additional_me_fx": "+ 追加 ME FX",
+  "psha.additional_fx_perf_info": "複数の FX レイヤーを使用すると、アバターのアニメーション性能や最適化に影響する場合があります。\n必要な場合のみ追加 ME FX レイヤーを使用してください。",
+  "psha.layer_count": "レイヤー数",
+  "psha.me_fx_layer_n": "+ ME FX レイヤー {0}",
+
+  "psha.replace_me_menu_icon": "ME メニューアイコンに置き換え",
+  "psha.replace_me_menu_icon_tt": "VRC エモートメニューのアイコンを ME アイコンに置き換えます。",
+
+  "psha.btn_setup": "Setup VRC Emote",
+  "psha.btn_default": "デフォルト",
+  "psha.undo_reset": "Psha VRC Emote Installer をリセット",
+
+  "psha.preview_foldout": "適用内容を表示（プレビュー）",
+  "psha.preview_name_before": "名前（前）",
+  "psha.preview_name_after": "名前（後）",
+  "psha.preview_type_before": "タイプ（前）",
+  "psha.preview_type_after": "タイプ（後）",
+
+  "psha.warn_need_descriptor": "このコンポーネントを正しく使用するには、VRCAvatarDescriptor を持つアバターオブジェクト配下に配置する必要があります。\nこのオブジェクトをアバタールートへ移動してください。",
+  "psha.warn_name_mismatch": "エモート名が GameObject 名と一致していません。\nME FX レイヤー使用時に結果が変わる可能性があります。\n「Setup VRC Emote」を実行するか、名前を一致させてください。",
+  "psha.no_gameobject": "(オブジェクトなし)",
+  "psha.warn_shared_fx": "複数の ME エモートが同じ ME FX レイヤーを共有しています。\nME FX レイヤー使用時に結果が変わる可能性があります。\n重複している ME FX レイヤーのオブジェクト名: {0}",
+
+  "psha.no_descriptor_short": "親 VRCAvatarDescriptor が見つかりません。",
+  "psha.menu_empty": "アバターの Expressions Menu が空です。",
+
+  "psha.preview_no_menu": "対象の VRC エモートメニューが空、または自動検出に失敗しました。",
+  "psha.preview_target_no_controls": "対象の VRC エモートメニューにコントロールがありません。",
+  "psha.preview_menu_no_controls": "プレビューメニューにコントロールがありません。",
+  "psha.preview_no_installers": "有効な PshaVRCEmoteInstaller が存在しないため、プレビューできません。",
+  "psha.preview_auto_detected": "プレビュー用エモートメニューを自動検出しました: {0}",
+  "psha.preview_menu": "プレビューメニュー: {0}",
+
+  "psha.dialog_setup_title": "Setup VRC Emote",
+  "psha.dialog_no_descriptor": "親 VRCAvatarDescriptor が見つかりません。\nこのオブジェクトがアバタールート配下にあるか確認してください。",
+  "psha.dialog_menu_not_assigned": "アバターの Expressions Menu が割り当てられていません。",
+  "psha.dialog_failed_auto_detect_menu": "エモートメニューの自動検出に失敗しました。\n対象の VRC エモートメニューを手動で指定してください。",
+  "psha.ok": "確認"
+}
