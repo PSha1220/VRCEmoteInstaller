@@ -16,41 +16,39 @@
   "psha.tt.additional_me_fx": "Merge additional ME FX layers (up to 2).",
   "psha.tt.layer_count": "Additional ME FX layer count.",
   "psha.tt.replace_me_menu_icon": "Replace the VRC Emote menu icon with the ME icon.",
-
   "psha.vrc_emote_settings": "VRC Emote Settings",
-
   "psha.content": "Content",
   "psha.name": "Name",
   "psha.no_name": "(No Name)",
   "psha.no_icon": "No Icon",
   "psha.target_slot": "Target Slot No. (1 to 8)",
-
   "psha.dev_options": "Developer Options",
   "psha.target_menu": "Target VRC Emote Menu",
-
   "psha.menu_settings": "Menu Settings",
   "psha.emote_name": "Emote Name",
   "psha.menu_icon": "Menu Icon",
+  "psha.err_menu_icon_non_asset": "Menu Icon will not be included in build.\nAssign a Texture2D asset.\n",
+  "psha.err_menu_icon_will_fail_validation": "Menu Icon import settings will fail VRC validation. ({0})\n",
+  "psha.btn_fix_icon_settings": "Fix Icon Settings (256, Compressed)",
+  "psha.icon_issue_non_asset": "Icon is not an asset reference",
+  "psha.icon_issue_max_size": "Max Size {0}",
+  "psha.icon_issue_uncompressed": "Compression Uncompressed",
+  "psha.icon_issue_max_size_uncompressed": "Max Size {0}, Compression Uncompressed",
   "psha.type": "Type",
   "psha.value": "Value",
   "psha.parameter": "Parameter",
-
   "psha.avatar_layer_settings": "Avatar Layer Settings",
   "psha.avatar_action_layer": "Avatar Action Layer",
   "psha.avatar_fx_layer": "Avatar FX Layer",
-
   "psha.me_merge_settings": "ME Layer Merge Settings",
   "psha.me_action_layer": "ME Action Layer",
   "psha.me_fx_layer": "ME FX Layer",
-
   "psha.state_settings": "State Settings",
   "psha.start_action_state": "Start Action State",
   "psha.end_action_state": "End Action State",
   "psha.action_sub_sm_root": "Action SM Root",
   "psha.action_sub_sm_root_empty_warn": "Action Sub StateMachine Root is empty. Click 'Setup VRC Emote' or enter the Action Sub StateMachine Root.",
-
   "psha.me_write_defaults_off": "ME Write Default OFF",
-
   "psha.advanced_options": "Advanced Options",
   "psha.track_action_sub_sm": "Action SM Root Tracking",
   "psha.use_merge_me_fx": "Use Merge ME FX",
@@ -58,39 +56,43 @@
   "psha.additional_fx_perf_info": "Using multiple FX layers can negatively impact avatar animation performance and optimization.\nUse additional ME FX layers only when necessary.",
   "psha.layer_count": "Layer Count",
   "psha.me_fx_layer_n": " + ME FX Layer {0}",
-
   "psha.replace_me_menu_icon": "Replace ME Menu Icon",
   "psha.replace_me_menu_icon_tt": "Replace the VRC Emote menu icon with the ME icon.",
-
   "psha.btn_setup": "Setup VRC Emote",
   "psha.btn_default": "Default",
   "psha.undo_reset": "Reset Psha VRC Emote Installer",
-
   "psha.preview_foldout": "Show Applied Changes (Preview)",
   "psha.preview_no": "No.",
   "psha.preview_name_before": "Name →→",
   "psha.preview_name_after": "Name (After)",
   "psha.preview_type_before": "Type →→",
   "psha.preview_type_after": "Type",
-
   "psha.warn_need_descriptor": "For this component to work correctly, it must be placed under the avatar GameObject that has a VRCAvatarDescriptor.\nMove this object under the avatar root (the GameObject with the descriptor).",
   "psha.warn_name_mismatch": "The emote name does not match the GameObject name.\nResults may differ when using ME FX layers.\nClick 'Setup VRC Emote' or make the names match.",
   "psha.no_gameobject": "(No GameObject)",
   "psha.warn_shared_fx": "There are multiple ME emotes sharing the same ME FX layer.\nResults may differ when using ME FX layers.\nDuplicate ME FX layer object name: {0}",
-
   "psha.no_descriptor_short": "Could not find a parent VRCAvatarDescriptor.",
   "psha.menu_empty": "The avatar Expressions Menu is empty.",
-
   "psha.preview_no_menu": "Target VRC emote menu is empty, and the emote menu could not be auto detected on the avatar.",
   "psha.preview_target_no_controls": "The target VRC emote menu has no controls.",
   "psha.preview_menu_no_controls": "The preview menu has no controls.",
   "psha.preview_no_installers": "There are no active PshaVRCEmoteInstaller components, so there is nothing to preview.",
   "psha.preview_auto_detected": "Auto detected emote menu for preview: {0}",
   "psha.preview_menu": "Preview menu: {0}",
-
   "psha.dialog_setup_title": "Setup VRC Emote",
   "psha.dialog_no_descriptor": "Could not find a parent VRCAvatarDescriptor.\nMake sure this object is placed under the avatar root.",
   "psha.dialog_menu_not_assigned": "The avatar Expressions Menu is not assigned.",
   "psha.dialog_failed_auto_detect_menu": "Failed to auto detect the emote menu.\nPlease assign the target VRC emote menu manually.",
-  "psha.ok": "OK"
+  "psha.ok": "OK",
+  "psha.action_sub_sm_root_invalid_err": "The specified Action SM Root is invalid for the current Action controller.\nPlease press 'Setup VRC Emote' or set a valid Action SM root.",
+  "psha.action_sub_sm_root_invalid_err_default": "For Default/empty Action layer, Action SM Root is assumed to be 'Action'.",
+  "psha.err_action_layer_missing_root": "Could not read Action layer root StateMachine from the descriptor controller.",
+  "psha.err_action_states_invalid": "Start/End Action State values are invalid for the current Action controller/scope.",
+  "psha.err_start_end_parent_mismatch": "Start/End Action States must be under the same parent StateMachine (within the selected scope).",
+  "psha.hint_parent_mismatch": "Different parent",
+  "psha.type.button": "Button",
+  "psha.type.none": "None",
+  "psha.type.toggle": "Toggle",
+  "psha.warn_anim_layer_mismatch": "Avatar Action/FX layer reference does not match this avatar (or the asset is missing).\nClick 'Setup VRC Emote' or clear the fields to use the descriptor layers.",
+  "psha.warn_target_menu_mismatch": "Target VRC Emote Menu does not belong to this avatar (or the asset is missing).\nClick 'Setup VRC Emote' or clear the field to use auto-detect."
 }

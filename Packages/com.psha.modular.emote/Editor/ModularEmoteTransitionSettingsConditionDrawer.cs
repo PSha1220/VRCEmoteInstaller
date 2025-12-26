@@ -12,13 +12,13 @@ public class ModularEmoteTransitionSettingsConditionDrawer : PropertyDrawer
         position = EditorGUI.IndentedRect(position);
         float vSpace = EditorGUIUtility.standardVerticalSpacing;
 
-        var propParameter       = property.FindPropertyRelative("parameter");
-        var propType            = property.FindPropertyRelative("type");
-        var propBoolValue       = property.FindPropertyRelative("boolValue");
-        var propIntComparison   = property.FindPropertyRelative("intComparison");
-        var propIntValue        = property.FindPropertyRelative("intValue");
+        var propParameter = property.FindPropertyRelative("parameter");
+        var propType = property.FindPropertyRelative("type");
+        var propBoolValue = property.FindPropertyRelative("boolValue");
+        var propIntComparison = property.FindPropertyRelative("intComparison");
+        var propIntValue = property.FindPropertyRelative("intValue");
         var propFloatComparison = property.FindPropertyRelative("floatComparison");
-        var propFloatValue      = property.FindPropertyRelative("floatValue");
+        var propFloatValue = property.FindPropertyRelative("floatValue");
 
         float y = position.y;
         float width = position.width;
@@ -81,13 +81,13 @@ public class ModularEmoteTransitionSettingsConditionDrawer : PropertyDrawer
         float totalHeight = 0f;
         int lineCount = 0;
 
-        var propParameter       = property.FindPropertyRelative("parameter");
-        var propType            = property.FindPropertyRelative("type");
-        var propBoolValue       = property.FindPropertyRelative("boolValue");
-        var propIntComparison   = property.FindPropertyRelative("intComparison");
-        var propIntValue        = property.FindPropertyRelative("intValue");
+        var propParameter = property.FindPropertyRelative("parameter");
+        var propType = property.FindPropertyRelative("type");
+        var propBoolValue = property.FindPropertyRelative("boolValue");
+        var propIntComparison = property.FindPropertyRelative("intComparison");
+        var propIntValue = property.FindPropertyRelative("intValue");
         var propFloatComparison = property.FindPropertyRelative("floatComparison");
-        var propFloatValue      = property.FindPropertyRelative("floatValue");
+        var propFloatValue = property.FindPropertyRelative("floatValue");
 
         totalHeight += EditorGUI.GetPropertyHeight(propParameter, true);
         lineCount++;

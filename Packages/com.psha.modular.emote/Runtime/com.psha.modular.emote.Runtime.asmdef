@@ -1,15 +1,17 @@
 {
   "name": "com.psha.modular.emote.Runtime",
+  "rootNamespace": "",
   "references": [
-    "VRC.SDK3A",
-    "VRC.SDKBase"
+    "VRC.SDKBase",
+    "VRC.SDK3A"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
-  "autoReferenced": true,
   "overrideReferences": false,
   "precompiledReferences": [],
+  "autoReferenced": true,
   "defineConstraints": [],
-  "optionalUnityReferences": []
+  "versionDefines": [],
+  "noEngineReferences": false
 }

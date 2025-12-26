@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[HelpURL("https://psha1220.github.io/modular-emote-docs/publisher-guide/behaviours/transition-settings/")]
 public class ModularEmoteTransitionSettings : StateMachineBehaviour
 {
 

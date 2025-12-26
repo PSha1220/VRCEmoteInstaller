@@ -96,7 +96,6 @@ public class PshaVRCEmoteInstallerEditor : Editor
         catch
         {
         }
-
         s_langMaps[lang] = map;
         return map;
     }
@@ -220,6 +219,42 @@ public class PshaVRCEmoteInstallerEditor : Editor
             return new GUIContent(Tr(labelKey, labelFallback), Tr(ttKey, ttFallback ?? string.Empty));
         return new GUIContent(Tr(labelKey, labelFallback));
     }
+    private void DrawControlTypePopupField()
+    {
+        // Keep serialized enum values stable (None=0, Button=1, Toggle=2),
+        // but show UI order as: Toggle, Button, None.
+        var label = GC("psha.type", "Type", "psha.tt.type", "Control type. None keeps the existing type.");
+
+        var options = new[]
+        {
+            new GUIContent(Tr("psha.type.toggle", "Toggle")),
+            new GUIContent(Tr("psha.type.button", "Button")),
+            new GUIContent(Tr("psha.type.none", "None")),
+        };
+
+        // enumValueIndex: 0=None, 1=Button, 2=Toggle
+        int enumIndex = Mathf.Clamp(_controlTypeProp.enumValueIndex, 0, 2);
+
+        int displayIndex;
+        if (_controlTypeProp.hasMultipleDifferentValues)
+        {
+            displayIndex = 0; // For mixed value display only
+        }
+        else
+        {
+            displayIndex = (enumIndex == 2) ? 0 : (enumIndex == 1) ? 1 : 2; // Toggle, Button, None
+        }
+
+        EditorGUI.showMixedValue = _controlTypeProp.hasMultipleDifferentValues;
+        EditorGUI.BeginChangeCheck();
+        displayIndex = EditorGUILayout.Popup(label, displayIndex, options);
+        if (EditorGUI.EndChangeCheck())
+        {
+            int newEnumIndex = (displayIndex == 0) ? 2 : (displayIndex == 1) ? 1 : 0;
+            _controlTypeProp.enumValueIndex = newEnumIndex;
+        }
+        EditorGUI.showMixedValue = false;
+    }
 
 
 
@@ -230,6 +265,8 @@ public class PshaVRCEmoteInstallerEditor : Editor
 
     SerializedProperty _targetMenuProp;
 
+
+    SerializedProperty _targetMenuPathProp;
     SerializedProperty _actionLayerProp;
     SerializedProperty _fxLayerProp;
 
@@ -258,23 +295,29 @@ public class PshaVRCEmoteInstallerEditor : Editor
 
     void OnEnable()
     {
+        // Always start collapsed for distribution stability
+        s_devFoldout = false;
+
+        CacheSerializedProps();
+    }
+    void CacheSerializedProps()
+    {
         _emoteNameProp = serializedObject.FindProperty("emoteName");
         _slotIndexProp = serializedObject.FindProperty("slotIndex");
         _menuIconProp = serializedObject.FindProperty("menuIcon");
         _controlTypeProp = serializedObject.FindProperty("controlType");
 
-        _targetMenuProp = serializedObject.FindProperty("targetMenu");
+        _targetMenuProp = serializedObject.FindProperty("targetMenuAsset");
+        _targetMenuPathProp = serializedObject.FindProperty("targetMenuPath");
 
-        _actionLayerProp = serializedObject.FindProperty("actionLayer");
-        _fxLayerProp = serializedObject.FindProperty("fxLayer");
-
+        _actionLayerProp = serializedObject.FindProperty("actionLayerAsset");
+        _fxLayerProp = serializedObject.FindProperty("fxLayerAsset");
 
         _MEactionProp = serializedObject.FindProperty("actionMELayer");
         _MEfxMotionProp = serializedObject.FindProperty("fxMELayer");
 
         _startActionStateProp = serializedObject.FindProperty("startActionState");
         _endActionStateProp = serializedObject.FindProperty("endActionState");
-
         _showActionMergeScopeProp = serializedObject.FindProperty("showActionMergeScopeInInspector");
         _actionMergeScopeProp = serializedObject.FindProperty("actionMergeScope");
 
@@ -284,13 +327,32 @@ public class PshaVRCEmoteInstallerEditor : Editor
         _useAdditionalMEFxLayersProp = serializedObject.FindProperty("useAdditionalMEFxLayers");
         _additionalMEFxLayersProp = serializedObject.FindProperty("additionalMEFxLayers");
 
-
         _changeEmoteMenuIconProp = serializedObject.FindProperty("changeEmoteMenuIcon");
     }
+
 
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
+
+        if (_slotIndexProp == null || _useMergeMEFxProp == null ||
+            _showActionMergeScopeProp == null || _actionMergeScopeProp == null ||
+            _MEfxMotionProp == null || _useAdditionalMEFxLayersProp == null ||
+            _additionalMEFxLayersProp == null)
+        {
+            CacheSerializedProps();
+        }
+
+        if (_slotIndexProp == null || _useMergeMEFxProp == null ||
+            _showActionMergeScopeProp == null || _actionMergeScopeProp == null ||
+            _MEfxMotionProp == null || _useAdditionalMEFxLayersProp == null ||
+            _additionalMEFxLayersProp == null)
+        {
+            EditorGUILayout.HelpBox(
+                "Inspector is initializing or scripts were reloaded. Please reselect the object.",
+                MessageType.Warning);
+            return;
+        }
 
         var mgr = (PshaVRCEmoteInstaller)target;
 
@@ -371,17 +433,33 @@ public class PshaVRCEmoteInstallerEditor : Editor
         EditorGUILayout.Space();
 
 
-        s_devFoldout = EditorGUILayout.Foldout(s_devFoldout, Tr("psha.dev_options", "Developer Options"));
+        var devNotices = CalcDeveloperOptionsNotices(mgr);
+        s_devFoldout = DrawFoldoutWithNoticeIcons(
+            s_devFoldout,
+            Tr("psha.dev_options", "Developer Options"),
+            devNotices
+        );
         if (s_devFoldout)
         {
 
             EditorGUI.indentLevel++;
 
             using (new EditorGUILayout.VerticalScope("box"))
+            using (new GuiModeScope(CalcStableLabelWidth(), wideMode: true))
             {
                 EditorGUILayout.LabelField(Tr("psha.vrc_emote_settings", "VRC Emote Settings"), EditorStyles.boldLabel);
 
-                EditorGUILayout.PropertyField(_targetMenuProp, GC("psha.target_menu", "Target VRC Emote Menu", "psha.tt.target_menu", "VRCEmote menu to customize. Leave empty to auto detect at build time."));
+                EditorGUI.BeginChangeCheck();
+                EditorGUILayout.PropertyField(_targetMenuProp,
+                    GC("psha.target_menu", "Target VRC Emote Menu", "psha.tt.target_menu",
+                       "VRCEmote menu to customize. Leave empty to auto detect at build time."));
+                if (EditorGUI.EndChangeCheck())
+                {
+                    UpdateTargetMenuPathFromCurrentDescriptor((PshaVRCEmoteInstaller)target);
+                }
+
+                // Warn when the selected menu does not belong to this avatar
+                DrawTargetMenuAvatarMismatchWarning(mgr);
 
                 EditorGUILayout.Space(4);
 
@@ -391,7 +469,9 @@ public class PshaVRCEmoteInstallerEditor : Editor
 
                 EditorGUILayout.PropertyField(_emoteNameProp, GC("psha.emote_name", "Emote Name", "psha.tt.emote_name", "Name displayed in the VRC Emote menu."));
                 EditorGUILayout.PropertyField(_menuIconProp, GC("psha.menu_icon", "Menu Icon", "psha.tt.menu_icon", "Icon displayed in the VRC Emote menu."));
-                EditorGUILayout.PropertyField(_controlTypeProp, GC("psha.type", "Type", "psha.tt.type", "Control type. None keeps the existing type."));
+                DrawMenuIconBuildErrorUI(mgr, _menuIconProp);
+
+                DrawControlTypePopupField();
 
                 using (new EditorGUI.DisabledScope(true))
                 {
@@ -406,6 +486,10 @@ public class PshaVRCEmoteInstallerEditor : Editor
 
                 EditorGUILayout.PropertyField(_actionLayerProp, GC("psha.avatar_action_layer", "Avatar Action Layer", "psha.tt.avatar_action_layer", "Avatar Action layer controller. If empty, uses the descriptor default."));
                 EditorGUILayout.PropertyField(_fxLayerProp, GC("psha.avatar_fx_layer", "Avatar FX Layer", "psha.tt.avatar_fx_layer", "Avatar FX layer controller."));
+
+                // Warn when Action or FX controller does not match this avatar
+                DrawAnimLayerAvatarMismatchWarning(mgr);
+
 
                 EditorGUILayout.Space(2);
 
@@ -423,35 +507,7 @@ public class PshaVRCEmoteInstallerEditor : Editor
                 EditorGUILayout.Space(4);
 
 
-                EditorGUILayout.LabelField(Tr("psha.state_settings", "State Settings"), EditorStyles.miniBoldLabel);
-
-                EditorGUILayout.PropertyField(
-                    _startActionStateProp,
-                    GC("psha.start_action_state", "Start Action State", "psha.tt.start_action_state", "State name where the emote branch starts in the Action layer.")
-                );
-                EditorGUILayout.PropertyField(
-                    _endActionStateProp,
-                    GC("psha.end_action_state", "End Action State", "psha.tt.end_action_state", "State name where the emote branch ends in the Action layer.")
-                );
-
-
-                if (_showActionMergeScopeProp.boolValue)
-                {
-                    EditorGUILayout.PropertyField(
-                        _actionMergeScopeProp,
-                        GC("psha.action_sub_sm_root", "Action SM Root", "psha.tt.action_sub_sm_root", "Sub state machine name/path used as the merge scope.")
-                    );
-
-
-                    if (string.IsNullOrEmpty(_actionMergeScopeProp.stringValue))
-                    {
-                        EditorGUILayout.HelpBox(
-                            Tr("psha.action_sub_sm_root_empty_warn", "Action Sub StateMachine Root is empty. Click 'Setup VRC Emote' or enter the Action Sub StateMachine Root."),
-                            MessageType.Warning
-                        );
-                        EditorGUILayout.Space(4);
-                    }
-                }
+                DrawActionStateSettingsValidated(mgr);
 
 
                 EditorGUILayout.PropertyField(
@@ -612,6 +668,10 @@ public class PshaVRCEmoteInstallerEditor : Editor
             if (GUILayout.Button(Tr("psha.btn_setup", "Setup VRC Emote")))
             {
                 SetupVRCEmote(mgr);
+                UpdateTargetMenuPathFromCurrentDescriptor(mgr);
+                serializedObject.Update();
+                serializedObject.ApplyModifiedProperties();
+                PshaVRCEmoteInstallerAutoRetarget.ClearNotOnAvatarOverrides((PshaVRCEmoteInstaller)target);
             }
 
 
@@ -732,6 +792,13 @@ public class PshaVRCEmoteInstallerEditor : Editor
         {
             if (other == null) continue;
             if (other == mgr) continue;
+
+            // exclude inactive objects (matches Pass rule)
+            if (!other.gameObject.activeInHierarchy) continue;
+
+            // (optional) exclude disabled component too
+            // if (!other.enabled) continue;
+
             if (!other.useMergeMEFxLayer) continue;
             if (other.fxMELayer == null) continue;
 
@@ -764,6 +831,191 @@ public class PshaVRCEmoteInstallerEditor : Editor
 
 
 
+    private const string kSessionWarnKey_AutoDetectMenu = "PshaVRCEmoteInstaller.AutoDetectVRCEmoteMenuWarned.";
+
+
+
+    // Avatar mismatch warnings
+
+
+    private void DrawTargetMenuAvatarMismatchWarning(PshaVRCEmoteInstaller mgr)
+    {
+#if VRC_SDK_VRCSDK3
+        if (mgr == null) return;
+        if (!TryGetAvatarDescriptor(mgr, out var desc) || desc == null) return;
+
+        if (SoftRefHasProblem_TargetMenu(_targetMenuProp, desc))
+        {
+            EditorGUILayout.HelpBox(
+                Tr(
+                    "psha.warn_target_menu_mismatch",
+                    "Target VRC Emote Menu does not belong to this avatar (or the asset is missing).\n" +
+                    "Click 'Setup VRC Emote' or clear the field to use auto-detect."
+                ),
+                MessageType.Warning
+            );
+            EditorGUILayout.Space(4);
+        }
+#endif
+    }
+
+    private void DrawAnimLayerAvatarMismatchWarning(PshaVRCEmoteInstaller mgr)
+    {
+#if VRC_SDK_VRCSDK3
+        if (mgr == null) return;
+        if (!TryGetAvatarDescriptor(mgr, out var desc) || desc == null) return;
+
+        bool actionBad = SoftRefHasProblem_AnimatorLayer(_actionLayerProp, desc, VRCAvatarDescriptor.AnimLayerType.Action);
+        bool fxBad = SoftRefHasProblem_AnimatorLayer(_fxLayerProp, desc, VRCAvatarDescriptor.AnimLayerType.FX);
+
+        if (actionBad || fxBad)
+        {
+            EditorGUILayout.HelpBox(
+                Tr(
+                    "psha.warn_anim_layer_mismatch",
+                    "Avatar Action/FX layer reference does not match this avatar (or the asset is missing).\n" +
+                    "Click 'Setup VRC Emote' or clear the fields to use the descriptor layers."
+                ),
+                MessageType.Warning
+            );
+            EditorGUILayout.Space(4);
+        }
+#endif
+    }
+
+#if VRC_SDK_VRCSDK3
+    private static bool TryGetAvatarDescriptor(PshaVRCEmoteInstaller mgr, out VRCAvatarDescriptor desc)
+    {
+        desc = null;
+        if (mgr == null) return false;
+        desc = mgr.GetComponentInParent<VRCAvatarDescriptor>();
+        return desc != null;
+    }
+
+    private static bool SoftRefHasProblem_TargetMenu(SerializedProperty menuRefProp, VRCAvatarDescriptor desc)
+    {
+        if (menuRefProp == null || desc == null) return false;
+
+        var guidProp = menuRefProp.FindPropertyRelative("guid");
+        var lidProp = menuRefProp.FindPropertyRelative("localId");
+        var hintProp = menuRefProp.FindPropertyRelative("nameHint");
+
+        string guid = guidProp != null ? guidProp.stringValue : null;
+        long lid = lidProp != null ? lidProp.longValue : 0;
+        string hint = hintProp != null ? hintProp.stringValue : null;
+
+        if (string.IsNullOrEmpty(guid)) return false; // empty == auto-detect
+
+        var resolved = PshaAssetGuidReference.Resolve(guid, lid, typeof(VRCExpressionsMenu)) as VRCExpressionsMenu;
+        if (resolved == null) return true; // missing
+
+        if (!string.IsNullOrEmpty(hint) && !string.Equals(resolved.name, hint, StringComparison.Ordinal))
+            return true; // hint mismatch
+
+        var root = desc.expressionsMenu;
+        if (root == null) return true;
+
+        return !MenuTreeContains(root, resolved);
+    }
+
+    private static bool SoftRefHasProblem_AnimatorLayer(
+        SerializedProperty layerRefProp,
+        VRCAvatarDescriptor desc,
+        VRCAvatarDescriptor.AnimLayerType layerType)
+    {
+        if (layerRefProp == null || desc == null) return false;
+
+        var guidProp = layerRefProp.FindPropertyRelative("guid");
+        var lidProp = layerRefProp.FindPropertyRelative("localId");
+        var hintProp = layerRefProp.FindPropertyRelative("nameHint");
+
+        string guid = guidProp != null ? guidProp.stringValue : null;
+        long lid = lidProp != null ? lidProp.longValue : 0;
+        string hint = hintProp != null ? hintProp.stringValue : null;
+
+        if (string.IsNullOrEmpty(guid)) return false; // empty == descriptor layer
+
+        var resolved = PshaAssetGuidReference.Resolve(guid, lid, typeof(RuntimeAnimatorController)) as RuntimeAnimatorController;
+        if (resolved == null) return true; // missing
+
+        if (!string.IsNullOrEmpty(hint) && !string.Equals(resolved.name, hint, StringComparison.Ordinal))
+            return true; // hint mismatch
+
+        return !MatchesDescriptorLayerControllerGuid(desc, layerType, guid, lid);
+    }
+
+    private static bool MenuTreeContains(VRCExpressionsMenu root, VRCExpressionsMenu target)
+    {
+        if (root == null || target == null) return false;
+
+        var visited = new HashSet<VRCExpressionsMenu>();
+        var stack = new Stack<VRCExpressionsMenu>();
+        stack.Push(root);
+
+        while (stack.Count > 0)
+        {
+            var cur = stack.Pop();
+            if (cur == null) continue;
+            if (!visited.Add(cur)) continue;
+
+            if (ReferenceEquals(cur, target)) return true;
+
+            var controls = cur.controls;
+            if (controls == null) continue;
+
+            for (int i = 0; i < controls.Count; i++)
+            {
+                var c = controls[i];
+                if (c == null) continue;
+                if (c.subMenu != null) stack.Push(c.subMenu);
+            }
+        }
+
+        return false;
+    }
+
+    private static bool MatchesDescriptorLayerControllerGuid(
+        VRCAvatarDescriptor desc,
+        VRCAvatarDescriptor.AnimLayerType layerType,
+        string targetGuid,
+        long targetLocalId)
+    {
+        if (desc == null) return true;
+        if (string.IsNullOrEmpty(targetGuid)) return true;
+
+        var layers = desc.baseAnimationLayers;
+        if (layers == null) return false;
+
+        VRCAvatarDescriptor.CustomAnimLayer found = default;
+        bool hasFound = false;
+
+        for (int i = 0; i < layers.Length; i++)
+        {
+            if (layers[i].type == layerType)
+            {
+                found = layers[i];
+                hasFound = true;
+                break;
+            }
+        }
+
+        if (!hasFound) return false;
+
+        // Default layers are treated as mismatch
+        if (found.isDefault) return false;
+
+        var controller = found.animatorController;
+        if (controller == null) return false;
+
+        if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(controller, out var guid, out long lid))
+            return false;
+
+        if (guid != targetGuid) return false;
+
+        if (targetLocalId == 0) return true;
+        return lid == targetLocalId;
+    }
+#endif
 
 
     private void DrawCombinedPreview(PshaVRCEmoteInstaller current)
@@ -784,8 +1036,25 @@ public class PshaVRCEmoteInstallerEditor : Editor
         }
 
 
-        var explicitMenu = _targetMenuProp.objectReferenceValue as VRCExpressionsMenu;
+        var explicitMenu = ResolveMenuFromGuidRef(_targetMenuProp);
         var autoEmoteMenu = FindEmoteMenu(rootMenu);
+
+
+        // auto detect warning: only when we actually need auto detect (explicitMenu is empty),
+        // and only once per editor session per avatar descriptor.
+        if (explicitMenu == null && autoEmoteMenu == null)
+        {
+            string key = kSessionWarnKey_AutoDetectMenu + descriptor.GetInstanceID();
+            if (!SessionState.GetBool(key, false))
+            {
+                Debug.LogWarning(
+                    "[PshaVRCEmoteInstallerPass] Failed to auto detect the VRCEmote menu. " +
+                    "If targetMenu/path cannot be resolved, menu patching may be skipped."
+                );
+                SessionState.SetBool(key, true);
+            }
+        }
+
 
         VRCExpressionsMenu previewMenu = explicitMenu ?? autoEmoteMenu;
         if (previewMenu == null)
@@ -847,7 +1116,7 @@ public class PshaVRCEmoteInstallerEditor : Editor
         {
             if (m == null) continue;
 
-            var targetMenu = m.targetMenu != null ? m.targetMenu : autoEmoteMenu;
+            var targetMenu = ResolveTargetMenuForPreview(m, rootMenu, autoEmoteMenu);
             if (targetMenu == previewMenu)
             {
                 affectingManagers.Add(m);
@@ -1021,19 +1290,40 @@ public class PshaVRCEmoteInstallerEditor : Editor
                 switch (layer.type)
                 {
                     case VRCAvatarDescriptor.AnimLayerType.Action:
+                        {
+                            // Policy: leaving empty => use descriptor at build time.
+                            // So during Setup, we only write the soft-ref when the layer is explicitly overridden by a controller.
+                            actionIsDefault = layer.isDefault;
 
-                        _actionLayerProp.objectReferenceValue = layer.animatorController;
-                        actionIsDefault = layer.isDefault;
-                        actionController = layer.animatorController as AnimatorController;
-                        break;
+                            if (layer.isDefault || layer.animatorController == null)
+                            {
+                                // Clear (None)
+                                PshaAssetGuidReference.SetToSerializedProperty(_actionLayerProp, null);
+                                actionController = null;
+                            }
+                            else
+                            {
+                                PshaAssetGuidReference.SetToSerializedProperty(_actionLayerProp, layer.animatorController);
+                                actionController = layer.animatorController as AnimatorController;
+                            }
+
+                            break;
+                        }
 
                     case VRCAvatarDescriptor.AnimLayerType.FX:
-
-                        if (layer.animatorController != null)
                         {
-                            _fxLayerProp.objectReferenceValue = layer.animatorController;
+                            // Same policy as Action: if FX is Default or empty, keep it as None (so descriptor FX is used).
+                            if (layer.isDefault || layer.animatorController == null)
+                            {
+                                PshaAssetGuidReference.SetToSerializedProperty(_fxLayerProp, null);
+                            }
+                            else
+                            {
+                                PshaAssetGuidReference.SetToSerializedProperty(_fxLayerProp, layer.animatorController);
+                            }
+
+                            break;
                         }
-                        break;
                 }
             }
         }
@@ -1044,54 +1334,69 @@ public class PshaVRCEmoteInstallerEditor : Editor
 
         if (actionController != null)
         {
-
             TryDetectEmoteStartEnd(actionController, out startStateName, out endStateName);
         }
 
+        // Default or null Action layer is treated as mismatch
+        bool assumeBuiltinDefault = (actionController == null) || actionIsDefault;
 
+        string detectedMergeScopeName = null;
+        bool detectedMergeScope = false;
 
-        if (actionIsDefault)
-        {
-            if (string.IsNullOrEmpty(startStateName))
-                startStateName = "Prepare Standing";
-
-            if (string.IsNullOrEmpty(endStateName))
-                endStateName = "BlendOut Stand";
-        }
-
-
-
-
-        if (_showActionMergeScopeProp.boolValue &&
+        if (!assumeBuiltinDefault &&
             actionController != null &&
             !string.IsNullOrEmpty(startStateName) &&
             !string.IsNullOrEmpty(endStateName))
         {
-            string mergeScopeName;
-            if (TryDetectEmoteMergeScope(
-                    actionController,
-                    startStateName,
-                    endStateName,
-                    out mergeScopeName))
+            if (TryDetectEmoteMergeScope(actionController, startStateName, endStateName, out var mergeScopeName))
             {
-
-                _actionMergeScopeProp.stringValue = mergeScopeName;
+                detectedMergeScopeName = mergeScopeName;
+                detectedMergeScope = !string.IsNullOrEmpty(detectedMergeScopeName);
             }
         }
 
+        if (assumeBuiltinDefault)
+        {
+            startStateName = kDefaultActionStartState; // "Prepare Standing"
+            endStateName = kDefaultActionEndState;   // "BlendOut Stand"
 
+            _showActionMergeScopeProp.boolValue = false;
+            _actionMergeScopeProp.stringValue = string.Empty;
+        }
+        else if (detectedMergeScope)
+        {
+            if (string.Equals(detectedMergeScopeName, kDefaultActionScope, System.StringComparison.Ordinal))
+            {
+                _showActionMergeScopeProp.boolValue = false;
+                _actionMergeScopeProp.stringValue = string.Empty;
+            }
+            else
+            {
+                _showActionMergeScopeProp.boolValue = true;
+                _actionMergeScopeProp.stringValue = detectedMergeScopeName;
+            }
+        }
 
+        // Only overwrite when a value was found
+        if (!string.IsNullOrEmpty(startStateName))
+            _startActionStateProp.stringValue = startStateName;
 
-        _startActionStateProp.stringValue =
-            !string.IsNullOrEmpty(startStateName) ? startStateName : "(Inspection failed)";
-
-        _endActionStateProp.stringValue =
-            !string.IsNullOrEmpty(endStateName) ? endStateName : "(Inspection failed)";
+        if (!string.IsNullOrEmpty(endStateName))
+            _endActionStateProp.stringValue = endStateName;
 
 
         var rootMenu = descriptor.expressionsMenu;
         if (rootMenu == null)
         {
+            // If expressions menu is not assigned, clear target menu references
+
+
+            PshaAssetGuidReference.SetToSerializedProperty(_targetMenuProp, null);
+            if (_targetMenuPathProp != null)
+                _targetMenuPathProp.arraySize = 0;
+
+            _targetMenuProp.serializedObject.ApplyModifiedProperties();
+
             EditorUtility.DisplayDialog(
                 Tr("psha.dialog_setup_title", "Setup VRC Emote"),
                 Tr("psha.dialog_menu_not_assigned", "The avatar Expressions Menu is not assigned."),
@@ -1103,18 +1408,24 @@ public class PshaVRCEmoteInstallerEditor : Editor
         var emoteMenu = FindEmoteMenu(rootMenu);
         if (emoteMenu != null)
         {
-            _targetMenuProp.objectReferenceValue = emoteMenu;
+            PshaAssetGuidReference.SetToSerializedProperty(_targetMenuProp, emoteMenu);
+            UpdateTargetMenuPathFromCurrentDescriptor(mgr);
         }
         else
         {
+            // If auto detect fails, clear targetMenu and path
+            PshaAssetGuidReference.SetToSerializedProperty(_targetMenuProp, null);
+            if (_targetMenuPathProp != null) _targetMenuPathProp.arraySize = 0;
+            _targetMenuProp.serializedObject.ApplyModifiedProperties();
+
             EditorUtility.DisplayDialog(
-               "Setup VRC Emote",
-               Tr(
-                   "psha.dialog_failed_auto_detect_menu",
-                   "Failed to auto detect the emote menu.\nPlease assign the target VRC emote menu manually."
-               ),
-               Tr("psha.ok", "OK")
-           );
+                "Setup VRC Emote",
+                Tr(
+                    "psha.dialog_failed_auto_detect_menu",
+                    "Failed to auto detect the emote menu.\nPlease assign the target VRC emote menu manually."
+                ),
+                Tr("psha.ok", "OK")
+            );
         }
 
 
@@ -1131,6 +1442,82 @@ public class PshaVRCEmoteInstallerEditor : Editor
     }
 
 
+    private void UpdateTargetMenuPathFromCurrentDescriptor(PshaVRCEmoteInstaller mgr)
+    {
+        if (mgr == null || _targetMenuPathProp == null || _targetMenuProp == null) return;
+
+        var descriptor = mgr.GetComponentInParent<VRCAvatarDescriptor>();
+        var rootMenu = descriptor != null ? descriptor.expressionsMenu : null;
+
+        var targetMenu = ResolveMenuFromGuidRef(_targetMenuProp);
+        if (rootMenu == null || targetMenu == null)
+        {
+            _targetMenuPathProp.ClearArray();
+            serializedObject.ApplyModifiedProperties();
+            return;
+        }
+
+        if (TryComputeMenuPath(rootMenu, targetMenu, out var path))
+        {
+            _targetMenuPathProp.arraySize = path.Count;
+            for (int i = 0; i < path.Count; i++)
+                _targetMenuPathProp.GetArrayElementAtIndex(i).intValue = path[i];
+        }
+        else
+        {
+            _targetMenuPathProp.ClearArray();
+        }
+
+        serializedObject.ApplyModifiedProperties();
+    }
+
+    private static VRCExpressionsMenu ResolveMenuFromGuidRef(SerializedProperty guidRefProp)
+    {
+        if (guidRefProp == null) return null;
+        var guid = guidRefProp.FindPropertyRelative("guid")?.stringValue;
+        var lid = guidRefProp.FindPropertyRelative("localId")?.longValue ?? 0;
+        return PshaAssetGuidReference.Resolve(guid, lid, typeof(VRCExpressionsMenu)) as VRCExpressionsMenu;
+    }
+
+    private static bool TryComputeMenuPath(
+        VRCExpressionsMenu root,
+        VRCExpressionsMenu target,
+        out System.Collections.Generic.List<int> path
+    )
+    {
+        path = null;
+        if (root == null || target == null) return false;
+        if (ReferenceEquals(root, target))
+        {
+            path = new System.Collections.Generic.List<int>();
+            return true;
+        }
+
+        var visited = new System.Collections.Generic.HashSet<VRCExpressionsMenu>();
+        var tmp = new System.Collections.Generic.List<int>();
+
+        bool found = Dfs(root);
+        if (found) path = tmp;
+        return found;
+
+        bool Dfs(VRCExpressionsMenu cur)
+        {
+            if (cur == null || !visited.Add(cur)) return false;
+            if (cur.controls == null) return false;
+
+            for (int i = 0; i < cur.controls.Count; i++)
+            {
+                var c = cur.controls[i];
+                if (c?.subMenu == null) continue;
+
+                tmp.Add(i);
+                if (ReferenceEquals(c.subMenu, target)) return true;
+                if (Dfs(c.subMenu)) return true;
+                tmp.RemoveAt(tmp.Count - 1);
+            }
+            return false;
+        }
+    }
 
 
     private static VRCExpressionsMenu FindEmoteMenu(VRCExpressionsMenu root)
@@ -1700,6 +2087,35 @@ public class PshaVRCEmoteInstallerEditor : Editor
         }
     }
 
+    private struct GuiModeScope : IDisposable
+    {
+        private readonly bool _oldWide;
+        private readonly float _oldLabelWidth;
+
+        public GuiModeScope(float labelWidth, bool wideMode = true)
+        {
+            _oldWide = EditorGUIUtility.wideMode;
+            _oldLabelWidth = EditorGUIUtility.labelWidth;
+
+            EditorGUIUtility.wideMode = wideMode;
+            EditorGUIUtility.labelWidth = labelWidth;
+        }
+
+        public void Dispose()
+        {
+            EditorGUIUtility.wideMode = _oldWide;
+            EditorGUIUtility.labelWidth = _oldLabelWidth;
+        }
+    }
+
+    private static float CalcStableLabelWidth()
+    {
+        // Clamp label width to view width
+        float w = EditorGUIUtility.currentViewWidth;
+        return Mathf.Clamp(w * 0.32f, 120f, 170f);
+    }
+
+
     private struct LangItem
     {
         public string Code;
@@ -1768,12 +2184,774 @@ public class PshaVRCEmoteInstallerEditor : Editor
         return code ?? "en-us";
     }
 
+    private static VRCExpressionsMenu ResolveTargetMenuForPreview(
+        PshaVRCEmoteInstaller inst,
+        VRCExpressionsMenu rootMenu,
+        VRCExpressionsMenu autoEmoteMenu
+    )
+    {
+        if (inst == null) return autoEmoteMenu;
+
+        // Prefer path
+        if (rootMenu != null && inst.targetMenuPath != null && inst.targetMenuPath.Length > 0)
+        {
+            var cur = rootMenu;
+            foreach (var idx in inst.targetMenuPath)
+            {
+                if (cur?.controls == null || idx < 0 || idx >= cur.controls.Count) { cur = null; break; }
+                cur = cur.controls[idx]?.subMenu;
+            }
+            if (cur != null) return cur;
+        }
+
+        // 2) soft ref
+        var byGuid = inst.targetMenuAsset.Get<VRCExpressionsMenu>(inst);
+        if (byGuid != null) return byGuid;
+
+        // 3) fallback
+        return autoEmoteMenu;
+    }
+
+
+    // Action state and merge scope validation
+
+
+    static bool s_actionValidateStylesInit;
+    static GUIStyle s_textFieldRed;
+    static GUIStyle s_rightMiniLabel;
+    static GUIStyle s_rightMiniLabelRed;
+
+    static void EnsureActionValidateStyles()
+    {
+        if (s_actionValidateStylesInit) return;
+        s_actionValidateStylesInit = true;
+
+        s_textFieldRed = new GUIStyle(EditorStyles.textField);
+        s_textFieldRed.normal.textColor = kWarnRed;
+        s_textFieldRed.focused.textColor = kWarnRed;
+        s_textFieldRed.hover.textColor = kWarnRed;
+        s_textFieldRed.active.textColor = kWarnRed;
+
+        s_rightMiniLabel = new GUIStyle(EditorStyles.miniLabel)
+        {
+            alignment = TextAnchor.MiddleRight,
+            clipping = TextClipping.Clip
+        };
+
+        s_rightMiniLabelRed = new GUIStyle(s_rightMiniLabel);
+        s_rightMiniLabelRed.normal.textColor = kWarnRed;
+    }
+
+    // Default / null Action layer assumed names
+    private const string kDefaultActionStartState = "Prepare Standing";
+    private const string kDefaultActionEndState = "BlendOut Stand";
+    private const string kDefaultActionScope = "Action";
+
+    // Match PshaAssetGuidReferenceEditor red tone
+    private static readonly Color kWarnRed = new Color(1f, 0.3f, 0.3f, 1f);
+#if VRC_SDK_VRCSDK3
+    private int CalcActionStateValidationErrorCount(VRCAvatarDescriptor descriptor)
+    {
+        if (descriptor == null) return 0;
+
+        // SerializedProperty null-safe
+        bool showScope = _showActionMergeScopeProp != null && _showActionMergeScopeProp.boolValue;
+
+        string startName = _startActionStateProp?.stringValue ?? string.Empty;
+        string endName = _endActionStateProp?.stringValue ?? string.Empty;
+        string scopeStr = _actionMergeScopeProp?.stringValue ?? string.Empty;
+
+        int err = 0;
+
+        // Get Action controller
+        bool hasActionInfo = TryGetDescriptorActionAnimatorController(descriptor, out var actionCtrl, out bool actionIsDefault);
+
+        bool assumeBuiltinDefault = !hasActionInfo || actionIsDefault || actionCtrl == null;
+
+        // Default or null policy affects scope warnings
+        if (assumeBuiltinDefault)
+        {
+            if (showScope)
+            {
+                bool scopeMismatch = !string.IsNullOrEmpty(scopeStr)
+                                     && !string.Equals(scopeStr, kDefaultActionScope, StringComparison.Ordinal);
+                if (scopeMismatch) err++;
+            }
+            return err;
+        }
+
+        // Validate custom Action controller
+        if (actionCtrl.layers == null || actionCtrl.layers.Length == 0 || actionCtrl.layers[0].stateMachine == null)
+        {
+
+            return err + 1;
+        }
+
+        var rootSM = actionCtrl.layers[0].stateMachine;
+
+        // Optional scope
+        bool scopeSpecified = showScope && !string.IsNullOrEmpty(scopeStr);
+        bool scopeValid = true;
+        AnimatorStateMachine searchRoot = rootSM;
+
+        if (scopeSpecified)
+            scopeValid = TryFindStateMachineByNameOrPath(rootSM, scopeStr, out searchRoot);
+
+        if (scopeSpecified && !scopeValid) err++; // scope invalid error
+
+        // Start and end states must share the same parent state machine
+        AnimatorStateMachine startParent = null;
+        AnimatorStateMachine endParent = null;
+
+        bool startFound = !string.IsNullOrEmpty(startName) &&
+                          TryFindStateWithParent(searchRoot, startName, out _, out startParent);
+
+        bool endFound = !string.IsNullOrEmpty(endName) &&
+                        TryFindStateWithParent(searchRoot, endName, out _, out endParent);
+
+        bool startInvalid = !string.IsNullOrEmpty(startName) && !startFound;
+        bool endInvalid = !string.IsNullOrEmpty(endName) && !endFound;
+        bool parentMismatch = startFound && endFound && !ReferenceEquals(startParent, endParent);
+
+        if (startInvalid || endInvalid) err++;     // Start/End invalid error
+        if (parentMismatch) err++;                 // parent mismatch error
+
+        return err;
+    }
+
+
+
+
+    private int CalcActionStateValidationWarningCount(VRCAvatarDescriptor descriptor)
+    {
+        if (descriptor == null) return 0;
+
+        // SerializedProperty null-safe
+        bool showScope = _showActionMergeScopeProp != null && _showActionMergeScopeProp.boolValue;
+        string scopeStr = _actionMergeScopeProp?.stringValue ?? string.Empty;
+
+        // Get Action controller
+        bool hasActionInfo = TryGetDescriptorActionAnimatorController(descriptor, out var actionCtrl, out bool actionIsDefault);
+
+        bool assumeBuiltinDefault = !hasActionInfo || actionIsDefault || actionCtrl == null;
+
+        // Under default or null policy, these warnings are suppressed
+        if (assumeBuiltinDefault) return 0;
+
+        // Warn if root state machine cannot be read
+        var rootSM = (actionCtrl.layers != null && actionCtrl.layers.Length > 0) ? actionCtrl.layers[0].stateMachine : null;
+
+        // psha.err_action_layer_missing_root (MessageType.Warning)
+        if (rootSM == null) return 1;
+
+        int warn = 0;
+
+        // psha.action_sub_sm_root_empty_warn (MessageType.Warning)
+        if (showScope && string.IsNullOrEmpty(scopeStr))
+            warn++;
+
+        return warn;
+    }
+#endif
+
+
+    // Developer options notice icons
+
+    private struct FoldoutNoticeCounts
+    {
+        public int error;
+        public int warning;
+        public int info;
+
+        public int Total => error + warning + info;
+    }
+
+    private FoldoutNoticeCounts CalcDeveloperOptionsNotices(PshaVRCEmoteInstaller mgr)
+    {
+        var n = new FoldoutNoticeCounts();
+
+        {
+            var issue = GetIconImportIssue(mgr != null ? mgr.menuIcon : null, out _, out _, out _);
+            if (issue != IconImportIssue.None)
+                n.error++;
+        }
+
+#if VRC_SDK_VRCSDK3
+        if (mgr != null && TryGetAvatarDescriptor(mgr, out var desc) && desc != null)
+        {
+            // same condition as DrawTargetMenuAvatarMismatchWarning
+            if (SoftRefHasProblem_TargetMenu(_targetMenuProp, desc))
+                n.warning++;
+
+            // same condition as DrawAnimLayerAvatarMismatchWarning
+            bool actionBad = SoftRefHasProblem_AnimatorLayer(
+                _actionLayerProp, desc, VRCAvatarDescriptor.AnimLayerType.Action);
+            bool fxBad = SoftRefHasProblem_AnimatorLayer(
+                _fxLayerProp, desc, VRCAvatarDescriptor.AnimLayerType.FX);
+
+            if (actionBad || fxBad)
+                n.warning++;
+
+            n.warning += CalcActionStateValidationWarningCount(desc);
+
+            n.error += CalcActionStateValidationErrorCount(desc);
+        }
+#endif
+
+        // Info message that appears in Advanced Options ("Using multiple FX layers...")
+        if (_useMergeMEFxProp != null && _useAdditionalMEFxLayersProp != null
+            && _useMergeMEFxProp.boolValue
+            && _useAdditionalMEFxLayersProp.boolValue)
+        {
+            n.info++;
+        }
+
+        return n;
+    }
+
+    private static bool DrawFoldoutWithNoticeIcons(bool expanded, string label, FoldoutNoticeCounts notice)
+    {
+        Rect r = GUILayoutUtility.GetRect(0f, EditorGUIUtility.singleLineHeight, GUILayout.ExpandWidth(true));
+        Rect ind = EditorGUI.IndentedRect(r);
+
+        int iconCount =
+            (notice.error > 0 ? 1 : 0) +
+            (notice.warning > 0 ? 1 : 0) +
+            (notice.info > 0 ? 1 : 0);
+
+        float iconSize = ind.height;          // usually ~18
+        float pad = 2f;
+        float iconsWidth = iconCount > 0 ? (iconCount * iconSize + (iconCount - 1) * pad) : 0f;
+
+        Rect foldoutRect = ind;
+        foldoutRect.xMax -= iconsWidth;
+
+        expanded = EditorGUI.Foldout(foldoutRect, expanded, label, true);
+
+        if (iconCount > 0)
+        {
+            float x = ind.xMax - iconsWidth;
+
+            // order: error -> warning -> info (left to right)
+            if (notice.error > 0)
+            {
+                DrawNoticeIcon(ref x, ind, iconSize, pad, "console.erroricon.sml", $"Error ({notice.error})");
+            }
+            if (notice.warning > 0)
+            {
+                DrawNoticeIcon(ref x, ind, iconSize, pad, "console.warnicon.sml", $"Warning ({notice.warning})");
+            }
+            if (notice.info > 0)
+            {
+                DrawNoticeIcon(ref x, ind, iconSize, pad, "console.infoicon.sml", $"Info ({notice.info})");
+            }
+        }
+
+        return expanded;
+    }
+
+    private static void DrawNoticeIcon(ref float x, Rect lineRect, float size, float pad, string iconName, string tooltip)
+    {
+        var gc = EditorGUIUtility.IconContent(iconName);
+        if (gc == null || gc.image == null)
+        {
+            // fallback (some Unity versions differ)
+            gc = EditorGUIUtility.IconContent(iconName.Replace(".sml", ""));
+        }
+
+        var c = new GUIContent(gc) { tooltip = tooltip };
+        var ir = new Rect(x, lineRect.y, size, lineRect.height);
+        GUI.Label(ir, c);
+        x += size + pad;
+    }
+
+
+    private const int kIconMaxSize = 256;
+
+    private enum IconImportIssue
+    {
+        None,
+        NonAsset,
+        TooLarge,
+        Uncompressed,
+        TooLargeAndUncompressed,
+    }
+
+    private static IconImportIssue GetIconImportIssue(Texture2D tex, out TextureImporter importer, out string path, out string reason)
+    {
+        importer = null;
+        path = null;
+        reason = null;
+
+        if (tex == null) return IconImportIssue.None;
+
+        path = AssetDatabase.GetAssetPath(tex);
+        if (string.IsNullOrEmpty(path))
+        {
+            reason = Tr("psha.icon_issue_non_asset", "Icon is not an asset reference");
+            return IconImportIssue.NonAsset;
+        }
+
+        importer = AssetImporter.GetAtPath(path) as TextureImporter;
+        if (importer == null) return IconImportIssue.None;
+
+        bool sizeBad = importer.maxTextureSize > kIconMaxSize;
+
+        bool compressionBad = false;
+        try
+        {
+            compressionBad = importer.textureCompression == TextureImporterCompression.Uncompressed;
+        }
+        catch
+        {
+            compressionBad = false;
+        }
+
+        if (sizeBad && compressionBad)
+        {
+            reason = Trf("psha.icon_issue_max_size_uncompressed", "Max Size {0}, Compression Uncompressed", importer.maxTextureSize);
+            return IconImportIssue.TooLargeAndUncompressed;
+        }
+
+        if (sizeBad)
+        {
+            reason = Trf("psha.icon_issue_max_size", "Max Size {0}", importer.maxTextureSize);
+            return IconImportIssue.TooLarge;
+        }
+
+        if (compressionBad)
+        {
+            reason = Tr("psha.icon_issue_uncompressed", "Compression Uncompressed");
+            return IconImportIssue.Uncompressed;
+        }
+
+        return IconImportIssue.None;
+    }
+
+    private static void FixIconImport(TextureImporter importer)
+    {
+        if (importer == null) return;
+
+        if (importer.maxTextureSize > kIconMaxSize)
+            importer.maxTextureSize = kIconMaxSize;
+
+        importer.textureCompression = TextureImporterCompression.Compressed;
+
+        if (importer.mipmapEnabled)
+            importer.mipmapEnabled = false;
+
+        importer.SaveAndReimport();
+    }
+
+    private void DrawMenuIconBuildErrorUI(PshaVRCEmoteInstaller mgr, SerializedProperty menuIconProp)
+    {
+        if (mgr == null) return;
+
+        var tex = mgr.menuIcon;
+        var issue = GetIconImportIssue(tex, out var importer, out var path, out var reason);
+        if (issue == IconImportIssue.None) return;
+
+        string msg;
+        if (issue == IconImportIssue.NonAsset)
+            msg = Tr("psha.err_menu_icon_non_asset", "Menu Icon will not be included in build.\nAssign a Texture2D asset.\n");
+        else
+            msg = Trf("psha.err_menu_icon_will_fail_validation", "Menu Icon import settings will fail VRC validation. ({0})\n", reason);
+
+        if (!string.IsNullOrEmpty(path))
+            msg += path;
+
+        EditorGUILayout.HelpBox(msg, MessageType.Error);
+
+        if (issue != IconImportIssue.NonAsset && importer != null)
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button(Tr("psha.btn_fix_icon_settings", "Fix Icon Settings (256, Compressed)"), GUILayout.Width(220)))
+                {
+                    FixIconImport(importer);
+                    if (menuIconProp != null) menuIconProp.serializedObject.Update();
+                }
+            }
+        }
+    }
+
+
+    private void DrawActionStateSettingsValidated(PshaVRCEmoteInstaller mgr)
+    {
+        EnsureActionValidateStyles();
+
+        EditorGUILayout.LabelField(Tr("psha.state_settings", "State Settings"), EditorStyles.miniBoldLabel);
+
+        var descriptor = mgr != null ? mgr.GetComponentInParent<VRCAvatarDescriptor>() : null;
+
+        // Disable input outside the avatar hierarchy
+        if (descriptor == null)
+        {
+            using (new EditorGUI.DisabledScope(true))
+            {
+                EditorGUILayout.PropertyField(
+                    _startActionStateProp,
+                    GC("psha.start_action_state", "Start Action State", "psha.tt.start_action_state",
+                        "State name where the emote branch starts in the Action layer.")
+                );
+
+                EditorGUILayout.PropertyField(
+                    _endActionStateProp,
+                    GC("psha.end_action_state", "End Action State", "psha.tt.end_action_state",
+                        "State name where the emote branch ends in the Action layer.")
+                );
+
+                if (_showActionMergeScopeProp.boolValue)
+                {
+                    EditorGUILayout.PropertyField(
+                        _actionMergeScopeProp,
+                        GC("psha.action_sub_sm_root", "Action SM Root", "psha.tt.action_sub_sm_root",
+                            "Sub state machine name/path used as the merge scope.")
+                    );
+                }
+            }
+            EditorGUILayout.Space(2);
+            return;
+        }
+
+        // Cache current input values
+        bool showScope = _showActionMergeScopeProp.boolValue;
+        string startName = _startActionStateProp.stringValue ?? string.Empty;
+        string endName = _endActionStateProp.stringValue ?? string.Empty;
+        string scopeStr = _actionMergeScopeProp.stringValue ?? string.Empty;
+
+        // Get Action controller
+        bool hasActionInfo = TryGetDescriptorActionAnimatorController(descriptor, out var actionCtrl, out bool actionIsDefault);
+
+        // Default or null is treated as mismatch
+        bool assumeBuiltinDefault = !hasActionInfo || actionIsDefault || actionCtrl == null;
+        if (assumeBuiltinDefault)
+        {
+            bool startMismatch = !string.Equals(startName, kDefaultActionStartState, StringComparison.Ordinal);
+            bool endMismatch = !string.Equals(endName, kDefaultActionEndState, StringComparison.Ordinal);
+            bool scopeMismatch = showScope && !string.Equals(scopeStr, kDefaultActionScope, StringComparison.Ordinal);
+
+            DrawValidatedStringField(
+                _startActionStateProp,
+                GC("psha.start_action_state", "Start Action State", "psha.tt.start_action_state",
+                    "State name where the emote branch starts in the Action layer."),
+                invalid: startMismatch,
+                rightHint: null
+            );
+
+            DrawValidatedStringField(
+                _endActionStateProp,
+                GC("psha.end_action_state", "End Action State", "psha.tt.end_action_state",
+                    "State name where the emote branch ends in the Action layer."),
+                invalid: endMismatch,
+                rightHint: null
+            );
+
+            if (showScope)
+            {
+                DrawValidatedStringField(
+                    _actionMergeScopeProp,
+                    GC("psha.action_sub_sm_root", "Action SM Root", "psha.tt.action_sub_sm_root",
+                        "Sub state machine name/path used as the merge scope."),
+                    invalid: scopeMismatch,
+                    rightHint: null
+                );
+
+                // Keep empty value warning
+                if (string.IsNullOrEmpty(scopeStr))
+                {
+                    EditorGUILayout.HelpBox(
+                        Tr("psha.action_sub_sm_root_empty_warn",
+                            "Action Sub StateMachine Root is empty.\nUse 'Setup VRC Emote' or enter the Action Sub StateMachine Root."),
+                        MessageType.Warning
+                    );
+                    EditorGUILayout.Space(4);
+                }
+                else if (scopeMismatch)
+                {
+                    // Do not show not found text
+                    EditorGUILayout.HelpBox(
+                        Tr("psha.action_sub_sm_root_invalid_err_default",
+                            "For Default/empty Action layer, Action SM Root is assumed to be 'Action'."),
+                        MessageType.Error
+                    );
+                }
+            }
+
+            EditorGUILayout.Space(2);
+            return;
+        }
+
+
+        var rootSM = (actionCtrl.layers != null && actionCtrl.layers.Length > 0) ? actionCtrl.layers[0].stateMachine : null;
+        if (rootSM == null)
+        {
+            // If root state machine is unreadable, show warning
+            EditorGUILayout.PropertyField(_startActionStateProp, GC("psha.start_action_state", "Start Action State"));
+            EditorGUILayout.PropertyField(_endActionStateProp, GC("psha.end_action_state", "End Action State"));
+            if (showScope) EditorGUILayout.PropertyField(_actionMergeScopeProp, GC("psha.action_sub_sm_root", "Action SM Root"));
+
+            EditorGUILayout.HelpBox(
+                Tr("psha.err_action_layer_missing_root",
+                    "Could not read Action layer root StateMachine from the descriptor controller."),
+                MessageType.Warning
+            );
+            return;
+        }
+
+        // Optional scope
+        bool scopeSpecified = showScope && !string.IsNullOrEmpty(scopeStr);
+        bool scopeValid = true;
+        AnimatorStateMachine searchRoot = rootSM;
+
+        if (scopeSpecified)
+            scopeValid = TryFindStateMachineByNameOrPath(rootSM, scopeStr, out searchRoot);
+
+        // States must be inside scope and share the same parent state machine
+        AnimatorStateMachine startParent = null;
+        AnimatorStateMachine endParent = null;
+
+        bool startFound = !string.IsNullOrEmpty(startName) &&
+                          TryFindStateWithParent(searchRoot, startName, out _, out startParent);
+
+        bool endFound = !string.IsNullOrEmpty(endName) &&
+                        TryFindStateWithParent(searchRoot, endName, out _, out endParent);
+
+        bool startInvalid = !string.IsNullOrEmpty(startName) && !startFound;
+        bool endInvalid = !string.IsNullOrEmpty(endName) && !endFound;
+        bool parentMismatch = startFound && endFound && !ReferenceEquals(startParent, endParent);
+
+        DrawValidatedStringField(
+            _startActionStateProp,
+            GC("psha.start_action_state", "Start Action State", "psha.tt.start_action_state",
+                "State name where the emote branch starts in the Action layer."),
+            invalid: startInvalid || parentMismatch,
+            rightHint: parentMismatch ? Tr("psha.hint_parent_mismatch", "Different parent") : null
+        );
+
+        DrawValidatedStringField(
+            _endActionStateProp,
+            GC("psha.end_action_state", "End Action State", "psha.tt.end_action_state",
+                "State name where the emote branch ends in the Action layer."),
+            invalid: endInvalid || parentMismatch,
+            rightHint: parentMismatch ? Tr("psha.hint_parent_mismatch", "Different parent") : null
+        );
+
+        if (showScope)
+        {
+            DrawValidatedStringField(
+                _actionMergeScopeProp,
+                GC("psha.action_sub_sm_root", "Action SM Root", "psha.tt.action_sub_sm_root",
+                    "Sub state machine name/path used as the merge scope."),
+                invalid: scopeSpecified && !scopeValid,
+                rightHint: null // Do not show scope not found text
+            );
+
+            if (string.IsNullOrEmpty(scopeStr))
+            {
+                EditorGUILayout.HelpBox(
+                    Tr("psha.action_sub_sm_root_empty_warn",
+                        "Action Sub StateMachine Root is empty.\nUse 'Setup VRC Emote' or enter the Action Sub StateMachine Root."),
+                    MessageType.Warning
+                );
+                EditorGUILayout.Space(4);
+            }
+            else if (scopeSpecified && !scopeValid)
+            {
+                EditorGUILayout.HelpBox(
+                    Tr("psha.action_sub_sm_root_invalid_err",
+                        "The specified Action SM Root is invalid for the current Action controller.\n" +
+                        "Please press 'Setup VRC Emote' or set a valid Action SM root."),
+                    MessageType.Error
+                );
+            }
+        }
+
+        if (startInvalid || endInvalid)
+        {
+            // Use invalid state without not found text
+            EditorGUILayout.HelpBox(
+                Tr("psha.err_action_states_invalid",
+                    "Start/End Action State values are invalid for the current Action controller/scope."),
+                MessageType.Error
+            );
+        }
+
+        if (parentMismatch)
+        {
+            EditorGUILayout.HelpBox(
+                Tr("psha.err_start_end_parent_mismatch",
+                    "Start/End Action States must be under the same parent StateMachine (within the selected scope)."),
+                MessageType.Error
+            );
+        }
+
+        EditorGUILayout.Space(2);
+    }
+
+
+    static void DrawValidatedStringField(SerializedProperty prop, GUIContent label, bool invalid, string rightHint)
+    {
+        EnsureActionValidateStyles();
+
+        var rect = EditorGUILayout.GetControlRect(true);
+        EditorGUI.BeginProperty(rect, label, prop);
+
+        // Let PrefixLabel handle indent and width; draw only the value field
+        var fieldRect = EditorGUI.PrefixLabel(rect, label);
+
+        string current = prop.stringValue ?? string.Empty;
+        var style = invalid ? s_textFieldRed : EditorStyles.textField;
+
+        EditorGUI.BeginChangeCheck();
+        string next = EditorGUI.DelayedTextField(fieldRect, GUIContent.none, current, style);
+        if (EditorGUI.EndChangeCheck())
+            prop.stringValue = next;
+
+        // Draw the right side hint inside the text field
+        if (!string.IsNullOrEmpty(rightHint) && Event.current.type == EventType.Repaint)
+        {
+            var hintRect = new Rect(fieldRect.x + 6, fieldRect.y, fieldRect.width - 12, fieldRect.height);
+            var hintStyle = invalid ? s_rightMiniLabelRed : s_rightMiniLabel;
+            hintStyle.Draw(hintRect, new GUIContent(rightHint), false, false, false, false);
+        }
+
+        EditorGUI.EndProperty();
+    }
+
+    static bool TryGetDescriptorActionAnimatorController(
+        VRCAvatarDescriptor descriptor,
+        out AnimatorController controller,
+        out bool isDefault)
+    {
+        controller = null;
+        isDefault = false;
+
+        if (descriptor == null) return false;
+
+        var layers = descriptor.baseAnimationLayers;
+        if (layers == null) return false;
+
+        foreach (var l in layers)
+        {
+            if (l.type != VRCAvatarDescriptor.AnimLayerType.Action) continue;
+
+            isDefault = l.isDefault;
+
+            if (l.animatorController == null)
+                return true;
+
+            if (l.animatorController is AnimatorOverrideController aoc)
+            {
+                controller = aoc.runtimeAnimatorController as AnimatorController;
+                return true;
+            }
+
+            controller = l.animatorController as AnimatorController;
+            return true;
+        }
+
+        return false;
+    }
+
+    static bool TryFindStateMachineByNameOrPath(AnimatorStateMachine root, string nameOrPath, out AnimatorStateMachine found)
+    {
+        found = null;
+        if (root == null || string.IsNullOrEmpty(nameOrPath)) return false;
+
+        // Path is relative to the root
+        if (nameOrPath.IndexOf('/') >= 0 || nameOrPath.IndexOf('\\') >= 0)
+        {
+            var parts = nameOrPath.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+            var cur = root;
+
+            foreach (var p in parts)
+            {
+                bool ok = false;
+                foreach (var child in cur.stateMachines)
+                {
+                    var sm = child.stateMachine;
+                    if (sm != null && sm.name == p)
+                    {
+                        cur = sm;
+                        ok = true;
+                        break;
+                    }
+                }
+                if (!ok) return false;
+            }
+
+            found = cur;
+            return true;
+        }
+
+        // Depth first search first match
+        var stack = new Stack<AnimatorStateMachine>();
+        stack.Push(root);
+
+        while (stack.Count > 0)
+        {
+            var sm = stack.Pop();
+            if (sm == null) continue;
+
+            if (sm.name == nameOrPath)
+            {
+                found = sm;
+                return true;
+            }
+
+            foreach (var child in sm.stateMachines)
+                if (child.stateMachine != null) stack.Push(child.stateMachine);
+        }
+
+        return false;
+    }
+
+    static bool TryFindStateWithParent(
+        AnimatorStateMachine root,
+        string stateName,
+        out AnimatorState foundState,
+        out AnimatorStateMachine parent)
+    {
+        foundState = null;
+        parent = null;
+        if (root == null || string.IsNullOrEmpty(stateName)) return false;
+
+        var stack = new Stack<AnimatorStateMachine>();
+        stack.Push(root);
+
+        while (stack.Count > 0)
+        {
+            var sm = stack.Pop();
+            if (sm == null) continue;
+
+            foreach (var child in sm.states)
+            {
+                var st = child.state;
+                if (st != null && st.name == stateName)
+                {
+                    foundState = st;
+                    parent = sm;
+                    return true;
+                }
+            }
+
+            foreach (var childSm in sm.stateMachines)
+                if (childSm.stateMachine != null) stack.Push(childSm.stateMachine);
+        }
+
+        return false;
+    }
+
+
     private static void DrawEditorLanguageSection()
     {
         EditorGUILayout.Space(10);
         EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
         using (new EditorGUILayout.VerticalScope("box"))
+        using (new GuiModeScope(CalcStableLabelWidth(), wideMode: true))
         {
 
             Rect row = EditorGUILayout.GetControlRect();
@@ -1795,7 +2973,6 @@ public class PshaVRCEmoteInstallerEditor : Editor
 
             string effectiveCode = useSystem ? systemCode : savedCode;
             string effectiveDisplay = CodeToDisplay(effectiveCode);
-
 
             if (GUI.Button(buttonRect, effectiveDisplay, EditorStyles.popup))
             {

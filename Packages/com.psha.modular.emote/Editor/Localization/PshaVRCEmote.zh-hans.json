@@ -16,41 +16,39 @@
   "psha.tt.additional_me_fx": "合并额外的 ME FX 层（最多 2 个）。",
   "psha.tt.layer_count": "额外 ME FX 层的数量。",
   "psha.tt.replace_me_menu_icon": "将 VRC 表情菜单图标替换为 ME 图标。",
-
   "psha.vrc_emote_settings": "VRC 表情设置",
-
   "psha.content": "内容",
   "psha.name": "名称",
   "psha.no_name": "(无名称)",
   "psha.no_icon": "无图标",
   "psha.target_slot": "应用槽位编号 (1～8)",
-
   "psha.dev_options": "开发者选项",
   "psha.target_menu": "目标 VRC 表情菜单",
-
   "psha.menu_settings": "菜单设置",
   "psha.emote_name": "表情名称",
   "psha.menu_icon": "菜单图标",
+  "psha.err_menu_icon_non_asset": "菜单图标不会包含在构建中。\n请指定 Texture2D 资源。\n",
+  "psha.err_menu_icon_will_fail_validation": "菜单图标的导入设置可能会导致 VRC 验证失败。({0})\n",
+  "psha.btn_fix_icon_settings": "修复图标设置 (256, Compressed)",
+  "psha.icon_issue_non_asset": "不是资源引用",
+  "psha.icon_issue_max_size": "Max Size {0}",
+  "psha.icon_issue_uncompressed": "Compression Uncompressed",
+  "psha.icon_issue_max_size_uncompressed": "Max Size {0}, Compression Uncompressed",
   "psha.type": "类型",
   "psha.value": "值",
   "psha.parameter": "参数",
-
   "psha.avatar_layer_settings": "Avatar 图层设置",
   "psha.avatar_action_layer": "Avatar Action 层",
   "psha.avatar_fx_layer": "Avatar FX 层",
-
   "psha.me_merge_settings": "ME 图层合并设置",
   "psha.me_action_layer": "ME Action 层",
   "psha.me_fx_layer": "ME FX 层",
-
   "psha.state_settings": "状态设置",
   "psha.start_action_state": "开始 Action 状态",
   "psha.end_action_state": "结束 Action 状态",
   "psha.action_sub_sm_root": "Action SM 根",
   "psha.action_sub_sm_root_empty_warn": "未指定 Action 子状态机。\n请运行“Setup VRC Emote”，或手动输入根名称。",
-
   "psha.me_write_defaults_off": "ME Write Defaults OFF",
-
   "psha.advanced_options": "高级选项",
   "psha.track_action_sub_sm": "自动追踪动作合并范围",
   "psha.use_merge_me_fx": "使用 ME FX 合并",
@@ -58,38 +56,43 @@
   "psha.additional_fx_perf_info": "使用多个 FX 图层可能会影响 Avatar 的动画性能和优化。\n请仅在必要时使用额外的 ME FX 图层。",
   "psha.layer_count": "图层数量",
   "psha.me_fx_layer_n": "+ ME FX 图层 {0}",
-
   "psha.replace_me_menu_icon": "替换为 ME 菜单图标",
   "psha.replace_me_menu_icon_tt": "将 VRC 表情菜单图标替换为 ME 图标。",
-
   "psha.btn_setup": "Setup VRC Emote",
   "psha.btn_default": "默认",
   "psha.undo_reset": "重置 Psha VRC Emote Installer",
-
   "psha.preview_foldout": "显示应用内容（预览）",
+  "psha.preview_no": "编号",
   "psha.preview_name_before": "名称（前）",
   "psha.preview_name_after": "名称（后）",
   "psha.preview_type_before": "类型（前）",
   "psha.preview_type_after": "类型（后）",
-
   "psha.warn_need_descriptor": "要正确使用此组件，必须将其放置在带有 VRCAvatarDescriptor 的 Avatar 对象下。\n请将此对象移动到 Avatar 根对象。",
   "psha.warn_name_mismatch": "表情名称与 GameObject 名称不一致。\n使用 ME FX 图层时结果可能会有所不同。\n请运行“Setup VRC Emote”或使名称一致。",
   "psha.no_gameobject": "(无对象)",
   "psha.warn_shared_fx": "多个 ME 表情正在共享同一个 ME FX 图层。\n使用 ME FX 图层时结果可能会有所不同。\n重复的 ME FX 图层对象名称：{0}",
-
   "psha.no_descriptor_short": "未找到父级 VRCAvatarDescriptor。",
   "psha.menu_empty": "Avatar 的 Expressions Menu 为空。",
-
   "psha.preview_no_menu": "目标 VRC 表情菜单为空，且自动检测失败。",
   "psha.preview_target_no_controls": "目标 VRC 表情菜单中没有控件。",
   "psha.preview_menu_no_controls": "预览菜单中没有控件。",
   "psha.preview_no_installers": "没有启用的 PshaVRCEmoteInstaller，无法进行预览。",
   "psha.preview_auto_detected": "已自动检测用于预览的表情菜单：{0}",
   "psha.preview_menu": "预览菜单：{0}",
-
   "psha.dialog_setup_title": "Setup VRC Emote",
   "psha.dialog_no_descriptor": "未找到父级 VRCAvatarDescriptor。\n请确认该对象位于 Avatar 根对象下。",
   "psha.dialog_menu_not_assigned": "未分配 Avatar 的 Expressions Menu。",
   "psha.dialog_failed_auto_detect_menu": "自动检测表情菜单失败。\n请手动指定目标 VRC 表情菜单。",
-  "psha.ok": "确定"
+  "psha.ok": "确定",
+  "psha.action_sub_sm_root_invalid_err": "指定的 Action SM 根对当前 Action 控制器无效。\n请点击“Setup VRC Emote”，或设置有效的 Action SM 根。",
+  "psha.action_sub_sm_root_invalid_err_default": "对于默认/空的 Action 层，Action SM 根将被视为“Action”。",
+  "psha.err_action_layer_missing_root": "无法从描述器控制器读取 Action 层的根状态机。",
+  "psha.err_action_states_invalid": "Start/End Action State 对当前 Action 控制器/范围无效。",
+  "psha.err_start_end_parent_mismatch": "Start/End Action States 必须位于同一父状态机内（在所选范围内）。",
+  "psha.hint_parent_mismatch": "父级不同",
+  "psha.type.button": "按钮",
+  "psha.type.none": "无",
+  "psha.type.toggle": "切换",
+  "psha.warn_anim_layer_mismatch": "Avatar 的 Action/FX 图层引用与此 Avatar 不匹配（或资源缺失）。\n请点击“Setup VRC Emote”，或清空字段以使用描述器图层。",
+  "psha.warn_target_menu_mismatch": "目标 VRC 表情菜单不属于此 Avatar（或资源缺失）。\n请点击“Setup VRC Emote”，或清空字段以使用自动检测。"
 }

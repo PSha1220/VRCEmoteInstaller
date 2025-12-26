@@ -17,239 +17,147 @@ public static class PshaVRCEmoteInstallerPass
 {
     private const string EmoteParamName = "VRCEmote";
 
-    private static Texture2D s_meMenuIcon;
+    private const string DefaultMenuIconAssetPath = "Packages/com.psha.modular.emote/Runtime/Image/PshaModularVRCEmote_EXMenuIcon.png";
 
-    private static Texture2D GetPshaEmoteMenuIcon()
-    {
-        return GetPshaEmoteMenuIcon(null);
-    }
+
+    private static Texture2D s_meMenuIcon;
+    private static bool s_meMenuIconSearched;
 
     private static Texture2D GetPshaEmoteMenuIcon(PshaVRCEmoteInstaller anyInstaller)
     {
-        if (s_meMenuIcon != null) return s_meMenuIcon;
+        if (s_meMenuIconSearched) return s_meMenuIcon;
+        s_meMenuIconSearched = true;
 
-        
-        
-        
         try
         {
-            if (anyInstaller != null)
-            {
-                var script = MonoScript.FromMonoBehaviour(anyInstaller);
-                if (script != null)
-                {
-                    
-                    var tex = EditorGUIUtility.GetIconForObject(script) as Texture2D;
-                    if (tex != null && !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(tex)))
-                    {
-                        s_meMenuIcon = tex;
-                        return s_meMenuIcon;
-                    }
+            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(DefaultMenuIconAssetPath);
+            if (tex == null) return null;
 
-                    tex = EditorGUIUtility.ObjectContent(script, typeof(MonoScript)).image as Texture2D;
-                    if (tex != null && !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(tex)))
-                    {
-                        s_meMenuIcon = tex;
-                        return s_meMenuIcon;
-                    }
-
-                    tex = AssetPreview.GetMiniThumbnail(script);
-                    if (tex != null && !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(tex)))
-                    {
-                        s_meMenuIcon = tex;
-                        return s_meMenuIcon;
-                    }
-                }
-            }
-
-            
-            
-            
-            
-            {
-                
-                var tex = TryLoadTextureByFindAssets(
-                    "PshaVRCEmote128 t:Texture2D",
-                    path => string.Equals(
-                        Path.GetFileNameWithoutExtension(path),
-                        "PshaVRCEmote128",
-                        StringComparison.OrdinalIgnoreCase
-                    )
-                );
-
-                
-                tex ??= TryLoadTextureByFindAssets("PshaVRCEmote t:Texture2D");
-
-                
-                tex ??= TryLoadTextureByFindAssets("PshaModularVRCEmote t:Texture2D");
-
-                if (tex != null)
-                {
-                    s_meMenuIcon = tex;
-                    return s_meMenuIcon;
-                }
-            }
+            s_meMenuIcon = tex;
+            return s_meMenuIcon;
         }
         catch
         {
-            
+            return null;
         }
-
-        
-        var gc = EditorGUIUtility.ObjectContent(null, typeof(PshaVRCEmoteInstaller));
-        s_meMenuIcon = gc != null ? (gc.image as Texture2D) : null;
-        return s_meMenuIcon;
-    }
-
-    private static Texture2D TryLoadTextureByFindAssets(
-        string filter,
-        Func<string, bool> acceptPath = null
-    )
-    {
-        var guids = AssetDatabase.FindAssets(filter);
-        if (guids == null || guids.Length == 0) return null;
-
-        
-        var paths = new List<string>(guids.Length);
-        foreach (var g in guids)
-        {
-            var p = AssetDatabase.GUIDToAssetPath(g);
-            if (string.IsNullOrEmpty(p)) continue;
-            paths.Add(p);
-        }
-
-        
-        if (acceptPath != null)
-        {
-            var filtered = paths.Where(acceptPath).ToList();
-            if (filtered.Count > 0) paths = filtered;
-        }
-
-        
-        paths.Sort(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var p in paths)
-        {
-            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(p);
-            if (tex != null) return tex;
-        }
-
-        return null;
     }
 
 
-
-    
     private const string StartSettingsStateName = "[ME] StartState Transition Settings";
 
-    
+
     public static void Execute(BuildContext context)
+{
+    Execute_AnimatorOnly(context);
+    Execute_MenuOnly(context);
+}
+
+private static List<PshaVRCEmoteInstaller> CollectFinalInstallers(GameObject avatarRoot)
+{
+    var managers = avatarRoot.GetComponentsInChildren<PshaVRCEmoteInstaller>(true);
+    if (managers == null || managers.Length == 0) return null;
+
+    var list = new List<PshaVRCEmoteInstaller>(managers);
+    list.RemoveAll(m => m == null || !m.gameObject.activeInHierarchy);
+    if (list.Count == 0) return null;
+
+    list.Sort((a, b) => CompareHierarchyOrder(a.transform, b.transform));
+
+    var finalList = FilterFinalSlotWinnersInHierarchyOrder(list);
+    if (finalList.Count == 0) return null;
+
+    return finalList;
+}
+
+public static void Execute_AnimatorOnly(BuildContext context)
+{
+    var avatarRoot = context.AvatarRootObject;
+    if (avatarRoot == null) return;
+
+    var finalList = CollectFinalInstallers(avatarRoot);
+    if (finalList == null) return;
+
+    SetupActionTemplates_BC(context, finalList);
+    SetupFxTemplates_BC(context, finalList);
+}
+
+public static void Execute_MenuOnly(BuildContext context)
+{
+    var avatarRoot = context.AvatarRootObject;
+    if (avatarRoot == null) return;
+
+    var descriptor = context.VRChatAvatarDescriptor();
+    if (descriptor == null) return;
+
+    var rootMenu = descriptor.expressionsMenu;
+    if (rootMenu == null)
     {
-        var avatarRoot = context.AvatarRootObject;
-        if (avatarRoot == null) return;
-
-        var descriptor = context.VRChatAvatarDescriptor();
-        if (descriptor == null) return;
-
-        var rootMenu = descriptor.expressionsMenu;
-        if (rootMenu == null) return;
-
-        
-        var managers = avatarRoot.GetComponentsInChildren<PshaVRCEmoteInstaller>(true);
-        if (managers == null || managers.Length == 0) return;
-
-        
-        var list = new List<PshaVRCEmoteInstaller>(managers);
-        list.RemoveAll(m => m == null || !m.gameObject.activeInHierarchy);
-        if (list.Count == 0) return;
-
-        
-        GetPshaEmoteMenuIcon(list[0]);
-
-        
-        list.Sort((a, b) => CompareHierarchyOrder(a.transform, b.transform));
-
-        
-        var finalList = FilterFinalSlotWinnersInHierarchyOrder(list);
-        if (finalList.Count == 0) return;
-
-        
-        GetPshaEmoteMenuIcon(finalList[0]);
-
-        
-        SetupActionTemplates_BC(context, finalList);
-        SetupFxTemplates_BC(context, finalList);
-
-        
-        
-        
-
-        
-        bool needsAuto = false;
-        foreach (var m in finalList)
-        {
-            if (m != null && m.targetMenu == null)
-            {
-                needsAuto = true;
-                break;
-            }
-        }
-
-        VRCExpressionsMenu autoEmoteMenu = null;
-        if (needsAuto)
-        {
-            autoEmoteMenu = FindEmoteMenu(rootMenu);
-            if (autoEmoteMenu == null)
-            {
-                Debug.LogWarning(
-                    "[PshaVRCEmoteInstallerPass] Failed to auto detect the VRCEmote menu. " +
-                    "Please assign targetMenu on the ME Psha VRC Emote Installer manually."
-                );
-            }
-        }
-
-        
-        var modifications = new Dictionary<VRCExpressionsMenu, List<PshaVRCEmoteInstaller>>();
-        foreach (var m in finalList)
-        {
-            if (m == null) continue;
-
-            var target = m.targetMenu;
-            if (target == null) target = autoEmoteMenu;
-            if (target == null) continue;
-
-            if (!modifications.TryGetValue(target, out var g))
-            {
-                g = new List<PshaVRCEmoteInstaller>();
-                modifications.Add(target, g);
-            }
-            g.Add(m); 
-        }
-
-        if (modifications.Count == 0) return;
-
-        
-        var cloneMap = new Dictionary<VRCExpressionsMenu, VRCExpressionsMenu>();
-
-        
-        var toSave = new List<UnityEngine.Object>();
-
-        
-        var clonedRoot = CloneAndPatchMenu(rootMenu, modifications, cloneMap, toSave);
-
-        
-        SaveAssetsSafe(context, toSave);
-
-        descriptor.expressionsMenu = clonedRoot;
-
-        Debug.Log($"[PshaVRCEmoteInstallerPass] Applied Psha Modular VRC Emote settings to the cloned menu tree for {avatarRoot.name}.");
+        Debug.LogWarning(
+            $"[PshaVRCEmoteInstallerPass] descriptor.expressionsMenu is null on {avatarRoot.name}. " +
+            "Skipped ExpressionsMenu patch."
+        );
+        return;
     }
 
+    var finalList = CollectFinalInstallers(avatarRoot);
+    if (finalList == null) return;
 
-    
-    
-    
-    
+    bool mayNeedAuto = false;
+    foreach (var m in finalList)
+    {
+        if (m == null) continue;
+        if (!m.targetMenuAsset.IsSet || m.targetMenuPath == null || m.targetMenuPath.Length == 0)
+        {
+            mayNeedAuto = true;
+            break;
+        }
+    }
+
+    VRCExpressionsMenu autoEmoteMenu = FindEmoteMenu(rootMenu);
+    if (mayNeedAuto && autoEmoteMenu == null)
+    {
+        Debug.LogWarning(
+            "[PshaVRCEmoteInstallerPass] Failed to auto detect the VRCEmote menu. " +
+            "If your targetMenu reference/path cannot be resolved during build, menu patching will be skipped."
+        );
+    }
+
+    var modifications = new Dictionary<VRCExpressionsMenu, List<PshaVRCEmoteInstaller>>();
+    foreach (var m in finalList)
+    {
+        if (m == null) continue;
+
+        var target = ResolveTargetMenu_NoScore(rootMenu, m, autoEmoteMenu);
+        if (target == null) continue;
+
+        if (!modifications.TryGetValue(target, out var g))
+        {
+            g = new List<PshaVRCEmoteInstaller>();
+            modifications.Add(target, g);
+        }
+        g.Add(m);
+    }
+
+    if (modifications.Count == 0) return;
+
+    var cloneMap = new Dictionary<VRCExpressionsMenu, VRCExpressionsMenu>();
+    var toSave = new List<UnityEngine.Object>();
+
+    var clonedRoot = CloneAndPatchMenu(rootMenu, modifications, cloneMap, toSave);
+
+    SaveAssetsSafe(context, toSave);
+
+    descriptor.expressionsMenu = clonedRoot;
+
+    Debug.Log($"[PshaVRCEmoteInstallerPass] Applied Psha Modular VRC Emote settings to the cloned menu tree for {avatarRoot.name}.");
+}
+
+
+
+
+
+
+
     private static int CompareHierarchyOrder(Transform a, Transform b)
     {
         if (ReferenceEquals(a, b)) return 0;
@@ -266,17 +174,17 @@ public static class PshaVRCEmoteInstallerPass
             if (cmp != 0) return cmp;
         }
 
-        
+
         int lenCmp = pathA.Count.CompareTo(pathB.Count);
         if (lenCmp != 0) return lenCmp;
 
-        
+
         return a.GetInstanceID().CompareTo(b.GetInstanceID());
     }
 
     private static List<int> BuildSiblingIndexPath(Transform t)
     {
-        
+
         var path = new List<int>(8);
         while (t != null)
         {
@@ -287,17 +195,17 @@ public static class PshaVRCEmoteInstallerPass
         return path;
     }
 
-    
-    
-    
-    
-    
+
+
+
+
+
     private static List<PshaVRCEmoteInstaller> FilterFinalSlotWinnersInHierarchyOrder(List<PshaVRCEmoteInstaller> sortedInstallers)
     {
         var result = new List<PshaVRCEmoteInstaller>(8);
         if (sortedInstallers == null || sortedInstallers.Count == 0) return result;
 
-        var used = new bool[9]; 
+        var used = new bool[9];
         foreach (var inst in sortedInstallers)
         {
             if (inst == null) continue;
@@ -311,9 +219,9 @@ public static class PshaVRCEmoteInstallerPass
     }
 
 
-    
-    
-    
+
+
+
     private static void SetupActionTemplates_BC(
     BuildContext context,
     List<PshaVRCEmoteInstaller> installers
@@ -321,31 +229,31 @@ public static class PshaVRCEmoteInstallerPass
     {
         if (installers == null || installers.Count == 0) return;
 
-        
+
         var animatorCtx = context.ActivateExtensionContextRecursive<AnimatorServicesContext>();
         var vcc = animatorCtx.ControllerContext;
 
-        
+
         if (!vcc.Controllers.TryGetValue(VRCAvatarDescriptor.AnimLayerType.Action, out var vAction))
         {
-            
+
             return;
         }
 
-        
+
         foreach (var installer in installers)
         {
             if (installer == null) continue;
-            if (installer.actionMELayer == null) continue; 
+            if (installer.actionMELayer == null) continue;
             MergeActionSlot_BC(vAction, installer, vcc);
         }
     }
 
-    
-    
-    
-    
-    
+
+
+
+
+
     private static void SetupFxTemplates_BC(
         BuildContext context,
         List<PshaVRCEmoteInstaller> installers
@@ -361,7 +269,7 @@ public static class PshaVRCEmoteInstallerPass
             return;
         }
 
-        
+
         foreach (var installer in installers)
         {
             if (installer == null) continue;
@@ -373,12 +281,12 @@ public static class PshaVRCEmoteInstallerPass
             MergeFxForSlot_BC(vFx, installer, vcc);
         }
     }
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
     private static void MergeFxForSlot_BC(
         VirtualAnimatorController vFx,
         PshaVRCEmoteInstaller installer,
@@ -389,9 +297,9 @@ public static class PshaVRCEmoteInstallerPass
 
         int slot = Mathf.Clamp(installer.slotIndex, 1, 8);
 
-        
-        
-        
+
+
+
         if (installer.useMergeMEFxLayer)
         {
             if (installer.fxMELayer == null)
@@ -420,9 +328,9 @@ public static class PshaVRCEmoteInstallerPass
             }
         }
 
-        
-        
-        
+
+
+
         if (installer.useAdditionalMEFxLayers)
         {
             if (installer.additionalMEFxLayers == null || installer.additionalMEFxLayers.Length == 0)
@@ -433,7 +341,7 @@ public static class PshaVRCEmoteInstallerPass
                 return;
             }
 
-            
+
             int count = Mathf.Min(2, installer.additionalMEFxLayers.Length);
 
             bool anyMerged = false;
@@ -475,14 +383,14 @@ public static class PshaVRCEmoteInstallerPass
             }
         }
     }
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
     private static void MergeSingleFxTemplate_BC(
         VirtualAnimatorController vFx,
         AnimatorController templateCtrl,
@@ -502,18 +410,18 @@ public static class PshaVRCEmoteInstallerPass
         );
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
     private static void MergeSingleFxTemplate_BC(
         VirtualAnimatorController vFx,
         AnimatorController templateCtrl,
@@ -530,7 +438,7 @@ public static class PshaVRCEmoteInstallerPass
 
         try
         {
-            
+
             var layerKey = new
             {
                 Key = "PshaEmoteFxTemplate",
@@ -543,7 +451,7 @@ public static class PshaVRCEmoteInstallerPass
         }
         catch (MissingMethodException)
         {
-            
+
             vTemplateController = vcc.Clone(templateCtrl);
         }
 
@@ -553,14 +461,14 @@ public static class PshaVRCEmoteInstallerPass
             return;
         }
 
-        
+
         MergeVirtualControllerParameters(
             vFx,
             vTemplateController,
             skipVRCEmoteParameter: false
         );
 
-        
+
         var vTemplateLayer = vTemplateController.Layers.FirstOrDefault();
         if (vTemplateLayer == null)
         {
@@ -577,35 +485,35 @@ public static class PshaVRCEmoteInstallerPass
             return;
         }
 
-        
-        
+
+
         if (meWriteDefaultsOff)
         {
             ApplyWriteDefaultsToStateMachine(templateSM, false);
         }
 
-        
+
         var clampedSlot = Mathf.Clamp(slotIndex, 1, 8);
         PatchTemplateEmoteConditions(templateSM, clampedSlot);
 
-        
+
         vTemplateLayer.Name = string.IsNullOrEmpty(layerNameOverride)
             ? $"PshaEmoteFX_{clampedSlot}"
             : layerNameOverride;
 
-        
-        
+
+
         vFx.AddLayer(new LayerPriority(0), vTemplateLayer);
     }
 
 
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
     private static void MergeTemplateParametersIntoVirtualController(
         VirtualAnimatorController vController,
         AnimatorController templateCtrl,
@@ -627,18 +535,18 @@ public static class PshaVRCEmoteInstallerPass
         {
             if (src == null) continue;
 
-            
+
             if (skipVRCEmoteParameter && src.name == EmoteParamName) continue;
 
-            
+
             if (parameters.TryGetValue(src.name, out var existing))
             {
-                
-                
+
+
                 continue;
             }
 
-            
+
             var cloned = new AnimatorControllerParameter
             {
                 name = src.name,
@@ -654,13 +562,13 @@ public static class PshaVRCEmoteInstallerPass
         vController.Parameters = parameters;
     }
 
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
     private static void MergeVirtualControllerParameters(
         VirtualAnimatorController target,
         VirtualAnimatorController source,
@@ -684,13 +592,13 @@ public static class PshaVRCEmoteInstallerPass
             var src = kv.Value;
             if (src == null) continue;
 
-            
+
             if (skipVRCEmoteParameter && name == EmoteParamName) continue;
 
-            
+
             if (destParams.ContainsKey(name)) continue;
 
-            
+
             destParams = destParams.Add(name, src);
         }
 
@@ -698,31 +606,31 @@ public static class PshaVRCEmoteInstallerPass
     }
 
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
     private static void MergeActionSlot_BC(
         VirtualAnimatorController vAction,
         PshaVRCEmoteInstaller installer,
         VirtualControllerContext vcc
     )
     {
-        
+
         var firstLayer = vAction.Layers.FirstOrDefault();
         if (firstLayer == null || firstLayer.StateMachine == null) return;
 
         var rootSM = firstLayer.StateMachine;
 
-        
-        
+
+
         var searchRootSM = rootSM;
 
         bool useMergeScope =
@@ -745,15 +653,15 @@ public static class PshaVRCEmoteInstallerPass
             searchRootSM = scoped;
         }
 
-        
+
         if (string.IsNullOrEmpty(installer.startActionState) ||
             string.IsNullOrEmpty(installer.endActionState))
         {
             return;
         }
 
-        
-        
+
+
         var startState = FindVirtualStateByName(searchRootSM, installer.startActionState);
         var endState = FindVirtualStateByName(searchRootSM, installer.endActionState);
 
@@ -767,7 +675,7 @@ public static class PshaVRCEmoteInstallerPass
             return;
         }
 
-        
+
         if (!TryFindCommonParentStateMachine(searchRootSM, startState, endState, out var parentSM) ||
             parentSM == null)
         {
@@ -779,7 +687,7 @@ public static class PshaVRCEmoteInstallerPass
             return;
         }
 
-        
+
         var templateCtrl = installer.actionMELayer as AnimatorController;
         if (templateCtrl == null || templateCtrl.layers == null || templateCtrl.layers.Length == 0)
         {
@@ -798,25 +706,25 @@ public static class PshaVRCEmoteInstallerPass
             return;
         }
 
-        
-        
-        
-        MergeTemplateParametersIntoVirtualController(vAction, templateCtrl);
-        
 
-        
-        
+
+
+        MergeTemplateParametersIntoVirtualController(vAction, templateCtrl);
+
+
+
+
         var settingsBehaviour = FindModularTransitionSettings(templateSM);
 
-        
 
-        
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
+
+
         VirtualAnimatorController vTemplateController = null;
 
         try
@@ -843,7 +751,7 @@ public static class PshaVRCEmoteInstallerPass
             return;
         }
 
-        
+
         var vTemplateLayer = vTemplateController.Layers.FirstOrDefault();
 
         if (vTemplateLayer == null || vTemplateLayer.StateMachine == null)
@@ -857,14 +765,14 @@ public static class PshaVRCEmoteInstallerPass
 
         var vTemplateSM = vTemplateLayer.StateMachine;
 
-        
-        
+
+
         if (installer.meWriteDefaultsOff)
         {
             ApplyWriteDefaultsToStateMachine(vTemplateSM, false);
         }
 
-        
+
         var children = parentSM.StateMachines;
         children = children.Add(new VirtualStateMachine.VirtualChildStateMachine
         {
@@ -874,19 +782,19 @@ public static class PshaVRCEmoteInstallerPass
 
         parentSM.StateMachines = children;
 
-        
+
         int slot = Mathf.Clamp(installer.slotIndex, 1, 8);
 
-        
-        
-        
-        
+
+
+
+
         vTemplateSM.Name = $"PshaEmote_{slot}";
 
         PatchTemplateEmoteConditions(vTemplateSM, slot);
 
 
-        
+
         var templateEntry = FindTemplateEntryState(vTemplateSM);
         if (templateEntry == null)
         {
@@ -897,36 +805,36 @@ public static class PshaVRCEmoteInstallerPass
             return;
         }
 
-        
+
         if (settingsBehaviour != null)
         {
-            
-            
+
+
             RebuildSlotTransitionFromSettings(startState, templateEntry, slot, settingsBehaviour);
         }
         else
         {
-            
-            
+
+
             RedirectSlotTransitionsToTemplate(startState, templateEntry, slot);
         }
 
-        
-        
-        
+
+
+
         ConnectTemplateExitToEndState(parentSM, vTemplateSM, endState);
     }
 
 
 
-    
-    
-    
+
+
+
     private static VirtualState FindVirtualStateByName(VirtualStateMachine root, string name)
     {
         if (root == null || string.IsNullOrEmpty(name)) return null;
 
-        
+
         foreach (var state in root.AllStates())
         {
             if (state.Name == name) return state;
@@ -935,10 +843,10 @@ public static class PshaVRCEmoteInstallerPass
         return null;
     }
 
-    
-    
-    
-    
+
+
+
+
     private static VirtualStateMachine FindVirtualStateMachineByName(
         VirtualStateMachine root,
         string name
@@ -954,7 +862,7 @@ public static class PshaVRCEmoteInstallerPass
             var sm = stack.Pop();
             if (sm == null) continue;
 
-            
+
             if (sm.Name == name) return sm;
 
             var subMachines = sm.StateMachines;
@@ -973,11 +881,11 @@ public static class PshaVRCEmoteInstallerPass
     }
 
 
-    
-    
-    
-    
-    
+
+
+
+
+
     private static VirtualStateMachine FindParentStateMachineOfState(
         VirtualStateMachine rootSM,
         VirtualState target
@@ -985,7 +893,7 @@ public static class PshaVRCEmoteInstallerPass
     {
         if (rootSM == null || target == null) return null;
 
-        
+
         var stack = new Stack<VirtualStateMachine>();
         stack.Push(rootSM);
 
@@ -994,7 +902,7 @@ public static class PshaVRCEmoteInstallerPass
             var sm = stack.Pop();
             if (sm == null) continue;
 
-            
+
             var states = sm.States;
             if (states != null && states.Count > 0)
             {
@@ -1010,7 +918,7 @@ public static class PshaVRCEmoteInstallerPass
                 }
             }
 
-            
+
             var subMachines = sm.StateMachines;
             if (subMachines != null && subMachines.Count > 0)
             {
@@ -1022,14 +930,14 @@ public static class PshaVRCEmoteInstallerPass
             }
         }
 
-        
+
         return null;
     }
 
-    
-    
-    
-    
+
+
+
+
     private static bool TryFindCommonParentStateMachine(
         VirtualStateMachine rootSM,
         VirtualState startState,
@@ -1055,11 +963,92 @@ public static class PshaVRCEmoteInstallerPass
     }
 
 
+
+
+    private static VRCExpressionsMenu ResolveTargetMenu_NoScore(
+    VRCExpressionsMenu rootMenu,
+    PshaVRCEmoteInstaller installer,
+    VRCExpressionsMenu autoEmoteMenu
+)
+    {
+        if (installer == null || rootMenu == null) return null;
+
+        // Prefer targetMenuPath if set
+        if (installer.targetMenuPath != null && installer.targetMenuPath.Length > 0)
+        {
+            var cur = rootMenu;
+            foreach (var idx in installer.targetMenuPath)
+            {
+                if (cur?.controls == null) { cur = null; break; }
+                if (idx < 0 || idx >= cur.controls.Count) { cur = null; break; }
+
+                var c = cur.controls[idx];
+                cur = c?.subMenu;
+            }
+
+            if (cur != null) return cur;
+        }
+
+        // Then try SoftRef if it resolves and is in the menu tree
+        VRCExpressionsMenu explicitMenu = installer.targetMenuAsset.Resolve<VRCExpressionsMenu>();
+        if (explicitMenu != null && IsMenuInTree(rootMenu, explicitMenu))
+            return explicitMenu;
+
+        // Fallback to the auto detected menu
+        return autoEmoteMenu;
+    }
+
+
+    private static bool TryFollowMenuPath(VRCExpressionsMenu root, int[] path, out VRCExpressionsMenu menu)
+    {
+        menu = root;
+        if (root == null || path == null) return false;
+
+        for (int i = 0; i < path.Length; i++)
+        {
+            if (menu == null || menu.controls == null) return false;
+
+            int idx = path[i];
+            if (idx < 0 || idx >= menu.controls.Count) return false;
+
+            var c = menu.controls[idx];
+            if (c == null || c.subMenu == null) return false;
+
+            menu = c.subMenu;
+        }
+
+        return true;
+    }
+
+    private static bool IsMenuInTree(VRCExpressionsMenu root, VRCExpressionsMenu target)
+    {
+        if (root == null || target == null) return false;
+
+        var visited = new HashSet<VRCExpressionsMenu>();
+        var queue = new Queue<VRCExpressionsMenu>();
+        queue.Enqueue(root);
+
+        while (queue.Count > 0)
+        {
+            var cur = queue.Dequeue();
+            if (cur == null || !visited.Add(cur)) continue;
+            if (ReferenceEquals(cur, target)) return true;
+
+            if (cur.controls == null) continue;
+            foreach (var ctrl in cur.controls)
+            {
+                if (ctrl?.subMenu != null) queue.Enqueue(ctrl.subMenu);
+            }
+        }
+
+        return false;
+    }
+
     #region ExpressionsMenu Clone and Patch
 
-    
-    
-    
+
+
+
     private static VRCExpressionsMenu FindEmoteMenu(VRCExpressionsMenu root)
     {
         if (root == null) return null;
@@ -1089,9 +1078,9 @@ public static class PshaVRCEmoteInstallerPass
         return null;
     }
 
-    
-    
-    
+
+
+
     private static bool IsVRCEmoteMenu(VRCExpressionsMenu menu)
     {
         if (menu.controls == null || menu.controls.Count == 0) return false;
@@ -1109,50 +1098,54 @@ public static class PshaVRCEmoteInstallerPass
             }
         }
 
-        
+
         return emoteCount >= 4;
     }
 
-    
-private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase transition, int slotIndex)
-{
-    if (transition == null) return false;
 
-    var conditions = transition.Conditions;
-    if (conditions == null || conditions.Count == 0) return false;
-
-    bool modified = false;
-
-    for (int i = 0; i < conditions.Count; i++)
+    private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase transition, int slotIndex)
     {
-        var cond = conditions[i];
+        if (transition == null) return false;
 
-        if (cond.parameter != EmoteParamName) continue;
+        var conditions = transition.Conditions;
+        if (conditions == null || conditions.Count == 0) return false;
 
-        if (cond.mode != AnimatorConditionMode.Equals) continue;
+        bool modified = false;
 
-        int thr = Mathf.RoundToInt(cond.threshold);
-        if (thr < 1 || thr > 8) continue;
-
-        if (thr != slotIndex)
+        for (int i = 0; i < conditions.Count; i++)
         {
-            cond.threshold = slotIndex;
-            conditions = conditions.SetItem(i, cond);
-            modified = true;
+            var cond = conditions[i];
+            if (cond.parameter != EmoteParamName) continue;
+
+
+            switch (cond.mode)
+            {
+                case AnimatorConditionMode.Equals:
+                case AnimatorConditionMode.NotEqual:
+                case AnimatorConditionMode.Greater:
+                case AnimatorConditionMode.Less:
+                    if (!Mathf.Approximately(cond.threshold, slotIndex))
+                    {
+                        cond.threshold = slotIndex;
+                        conditions = conditions.SetItem(i, cond);
+                        modified = true;
+                    }
+                    break;
+
+                default:
+                    break;
+            }
         }
+
+        if (modified) transition.Conditions = conditions;
+        return modified;
     }
 
-    if (modified)
-        transition.Conditions = conditions;
 
-    return modified;
-}
 
-    
-    
-    
-    
-    
+
+
+
     private static void ApplyWriteDefaultsToStateMachine(
         VirtualStateMachine rootSM,
         bool writeDefaults
@@ -1167,16 +1160,16 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
         }
     }
 
-    
-    
-    
-    
-    
+
+
+
+
+
     private static void PatchTemplateEmoteConditions(VirtualStateMachine templateSM, int slotIndex)
     {
         if (templateSM == null) return;
 
-        
+
         foreach (var state in templateSM.AllStates())
         {
             if (state == null) continue;
@@ -1201,10 +1194,10 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
             if (anyChanged) state.Transitions = transitions;
         }
 
-        
+
         foreach (var sm in EnumerateStateMachines(templateSM))
         {
-            
+
             {
                 var list = sm.AnyStateTransitions;
                 if (list != null && list.Count > 0)
@@ -1225,7 +1218,7 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
                 }
             }
 
-            
+
             {
                 var list = sm.EntryTransitions;
                 if (list != null && list.Count > 0)
@@ -1246,7 +1239,7 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
                 }
             }
 
-            
+
             {
                 var dict = sm.StateMachineTransitions;
                 if (dict != null && dict.Count > 0)
@@ -1284,20 +1277,20 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
         }
     }
 
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
     private static ModularEmoteTransitionSettings FindModularTransitionSettings(
         AnimatorStateMachine templateSM
     )
     {
         if (templateSM == null) return null;
 
-        
-        
+
+
         var states = templateSM.states;
         if (states == null || states.Length == 0) return null;
 
@@ -1308,7 +1301,7 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
 
             if (state.name != StartSettingsStateName) continue;
 
-            
+
             var behaviours = state.behaviours;
             if (behaviours == null || behaviours.Length == 0) continue;
 
@@ -1324,10 +1317,10 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
         return null;
     }
 
-    
-    
-    
-    
+
+
+
+
     private static TransitionInterruptionSource MapInterruptionSource(
         ModularEmoteTransitionSettings.TransitionInterruptionSource src
     )
@@ -1348,14 +1341,14 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
                 return TransitionInterruptionSource.None;
         }
     }
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
     private static void RebuildSlotTransitionFromSettings(
         VirtualState startState,
         VirtualState templateEntry,
@@ -1371,7 +1364,7 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
             transitions = ImmutableList<VirtualStateTransition>.Empty;
         }
 
-        
+
         for (int i = transitions.Count - 1; i >= 0; i--)
         {
             var t = transitions[i];
@@ -1383,16 +1376,16 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
             }
         }
 
-        
+
         var newTransition = VirtualStateTransition.Create();
 
-        
+
         newTransition.SetDestination(templateEntry);
 
-        
+
         if (settings != null)
         {
-            
+
             newTransition.ExitTime = settings.transitionHasExitTime
                 ? (float?)settings.transitionExitTime
                 : null;
@@ -1405,7 +1398,7 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
         }
         else
         {
-            
+
             newTransition.ExitTime = null;
             newTransition.HasFixedDuration = true;
             newTransition.Duration = 0.1f;
@@ -1415,10 +1408,10 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
         }
 
 
-        
+
         var conditions = ImmutableList<AnimatorCondition>.Empty;
 
-        
+
         var baseCond = new AnimatorCondition
         {
             parameter = EmoteParamName,
@@ -1427,13 +1420,15 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
         };
         conditions = conditions.Add(baseCond);
 
-        
+
         if (settings != null && settings.conditions != null)
         {
             foreach (var c in settings.conditions)
             {
                 if (c == null) continue;
                 if (string.IsNullOrEmpty(c.parameter)) continue;
+
+                if (c.parameter == EmoteParamName) continue;
 
                 var extra = new AnimatorCondition
                 {
@@ -1443,7 +1438,7 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
                 switch (c.type)
                 {
                     case ModularEmoteTransitionSettings.Condition.ParameterType.Bool:
-                        
+
                         extra.mode = c.boolValue
                             ? AnimatorConditionMode.If
                             : AnimatorConditionMode.IfNot;
@@ -1451,7 +1446,7 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
                         break;
 
                     case ModularEmoteTransitionSettings.Condition.ParameterType.Int:
-                        
+
                         switch (c.intComparison)
                         {
                             case ModularEmoteTransitionSettings.Condition.IntComparison.Greater:
@@ -1475,7 +1470,7 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
                         break;
 
                     case ModularEmoteTransitionSettings.Condition.ParameterType.Float:
-                        
+
                         switch (c.floatComparison)
                         {
                             case ModularEmoteTransitionSettings.Condition.FloatComparison.Greater:
@@ -1499,13 +1494,13 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
                         break;
 
                     case ModularEmoteTransitionSettings.Condition.ParameterType.Trigger:
-                        
+
                         extra.mode = AnimatorConditionMode.If;
                         extra.threshold = 0f;
                         break;
 
                     default:
-                        
+
                         continue;
                 }
 
@@ -1515,17 +1510,17 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
 
         newTransition.Conditions = conditions;
 
-        
+
         transitions = transitions.Add(newTransition);
         startState.Transitions = transitions;
     }
 
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
     private static bool IsEmoteTransitionForSlot(VirtualTransitionBase t, int slotIndex)
     {
         if (t == null) return false;
@@ -1554,40 +1549,40 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
                 }
                 else if (value >= 9)
                 {
-                    
+
                     isSitTransition = true;
                 }
             }
         }
 
-        
+
         if (!hasVrcEmote) return false;
 
-        
+
         if (isSitTransition) return false;
 
-        
+
         return matchesSlot;
     }
 
-    
-    
-    
-    
-    
+
+
+
+
+
     private static VirtualState FindTemplateEntryState(VirtualStateMachine templateSM)
     {
         if (templateSM == null) return null;
 
-        
+
         if (templateSM.DefaultState != null)
         {
-            
+
             if (templateSM.DefaultState.Name != StartSettingsStateName)
                 return templateSM.DefaultState;
         }
 
-        
+
         var states = templateSM.States;
         if (states != null && states.Count > 0)
         {
@@ -1600,7 +1595,7 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
             }
         }
 
-        
+
         foreach (var s in templateSM.AllStates())
         {
             if (s == null) continue;
@@ -1611,10 +1606,10 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
         return null;
     }
 
-    
-    
-    
-    
+
+
+
+
     private static void RedirectSlotTransitionsToTemplate(
         VirtualState startState,
         VirtualState templateStart,
@@ -1633,15 +1628,15 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
             var t = transitions[i];
             if (t == null) continue;
 
-            
+
             if (!IsEmoteTransitionForSlot(t, slotIndex)) continue;
 
-            
-            
+
+
             t.SetDestination(templateStart);
 
-            
-            
+
+
             transitions = transitions.SetItem(i, t);
             anyChanged = true;
         }
@@ -1652,14 +1647,14 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
         }
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
     private static void ConnectTemplateExitToEndState(
         VirtualStateMachine parentSM,
         VirtualStateMachine vTemplateSM,
@@ -1668,41 +1663,41 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
     {
         if (parentSM == null || vTemplateSM == null || endState == null) return;
 
-        
-        
+
+
         var smTransitions = parentSM.StateMachineTransitions;
         if (smTransitions == null)
         {
             smTransitions = ImmutableDictionary<VirtualStateMachine, ImmutableList<VirtualTransition>>.Empty;
         }
 
-        
+
         if (!smTransitions.TryGetValue(vTemplateSM, out var transitionsForTemplate))
         {
             transitionsForTemplate = ImmutableList<VirtualTransition>.Empty;
         }
 
-        
+
         var newTransition = VirtualTransition.Create();
 
-        
-        
+
+
         newTransition.SetDestination(endState);
 
-        
-        
-        
+
+
+
         transitionsForTemplate = transitionsForTemplate.Add(newTransition);
 
-        
+
         smTransitions = smTransitions.SetItem(vTemplateSM, transitionsForTemplate);
 
-        
+
         parentSM.StateMachineTransitions = smTransitions;
     }
-    
-    
-    
+
+
+
     private static IEnumerable<VirtualStateMachine> EnumerateStateMachines(VirtualStateMachine root)
     {
         if (root == null) yield break;
@@ -1728,10 +1723,10 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
     }
 
 
-    
-    
-    
-    
+
+
+
+
     private static void ConnectTemplateEndToEndState(
         VirtualState templateEnd,
         VirtualState endState
@@ -1739,36 +1734,36 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
     {
         if (templateEnd == null || endState == null) return;
 
-        
+
         var transitions = templateEnd.Transitions;
         if (transitions == null)
         {
             transitions = ImmutableList<VirtualStateTransition>.Empty;
         }
 
-        
+
         var newTransition = VirtualStateTransition.Create();
 
-        
-        
+
+
         newTransition.SetDestination(endState);
 
-        
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
+
         transitions = transitions.Add(newTransition);
         templateEnd.Transitions = transitions;
     }
 
-    
-    
-    
-    
-    
+
+
+
+
+
     private static VRCExpressionsMenu CloneAndPatchMenu(
     VRCExpressionsMenu menu,
     Dictionary<VRCExpressionsMenu, List<PshaVRCEmoteInstaller>> modifications,
@@ -1782,19 +1777,22 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
             return existingClone;
 
         var clone = ScriptableObject.Instantiate(menu);
-        clone.name = menu.name + "_PshaEmote";
+        // keep original name
+        // clone.name = menu.name + "_PshaEmote";
+        clone.name = menu.name;
 
-        
+
+
         cloneMap[menu] = clone;
 
-        
+
         toSave?.Add(clone);
 
 
-        
+
         if (modifications.TryGetValue(menu, out var mgrs))
         {
-            
+
             for (int i = mgrs.Count - 1; i >= 0; i--)
             {
                 var m = mgrs[i];
@@ -1810,15 +1808,15 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
 
                 if (ctrl == null) continue;
 
-                
+
                 if (!string.IsNullOrEmpty(m.emoteName))
                     ctrl.name = m.emoteName;
 
-                
+
                 if (m.menuIcon != null)
                     ctrl.icon = m.menuIcon;
 
-                
+
                 if (m.controlType != PshaVRCEmoteInstaller.EmoteControlType.None)
                 {
                     ctrl.type = (m.controlType == PshaVRCEmoteInstaller.EmoteControlType.Toggle)
@@ -1826,52 +1824,65 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
                         : VRCExpressionsMenu.Control.ControlType.Button;
                 }
 
-                
+
                 ctrl.value = m.Value;
 
-                
+
                 if (ctrl.parameter == null)
                     ctrl.parameter = new VRCExpressionsMenu.Control.Parameter();
 
                 ctrl.parameter.name = m.ParameterName;
 
+                clone.controls[idx] = ctrl;
+
             }
         }
-        
-        
-        
-        var pshaMenuIcon = GetPshaEmoteMenuIcon();
-        if (pshaMenuIcon != null && clone.controls != null)
+
+
+
+
+        if (clone.controls != null)
         {
+
+            Texture2D pshaMenuIcon = null;
+
             for (int i = 0; i < clone.controls.Count; i++)
             {
                 var ctrl = clone.controls[i];
                 if (ctrl == null || ctrl.subMenu == null) continue;
 
-                if (!modifications.TryGetValue(ctrl.subMenu, out var targetMgrs) || targetMgrs == null || targetMgrs.Count == 0)
+                if (!modifications.TryGetValue(ctrl.subMenu, out var targetMgrs) ||
+                    targetMgrs == null || targetMgrs.Count == 0)
                     continue;
 
-                
                 bool applyIcon = true;
+                PshaVRCEmoteInstaller firstMgr = null;
 
                 for (int j = 0; j < targetMgrs.Count; j++)
                 {
                     var m = targetMgrs[j];
                     if (m == null) continue;
-                    applyIcon = m.changeEmoteMenuIcon; 
+
+                    applyIcon = m.changeEmoteMenuIcon;
+                    firstMgr = m;
                     break;
                 }
 
                 if (!applyIcon) continue;
 
-                
+                if (pshaMenuIcon == null)
+                    pshaMenuIcon = GetPshaEmoteMenuIcon(firstMgr);
+
+                if (pshaMenuIcon == null)
+                    continue;
+
                 ctrl.icon = pshaMenuIcon;
+                clone.controls[i] = ctrl;
             }
         }
 
 
 
-        
         if (clone.controls != null)
         {
             for (int i = 0; i < clone.controls.Count; i++)
@@ -1880,6 +1891,7 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
                 if (ctrl == null || ctrl.subMenu == null) continue;
 
                 ctrl.subMenu = CloneAndPatchMenu(ctrl.subMenu, modifications, cloneMap, toSave);
+                clone.controls[i] = ctrl;
             }
         }
 
@@ -1891,34 +1903,34 @@ private static bool PatchEmoteConditionsOnTransition(VirtualTransitionBase trans
 
 
 
-private static void SaveAssetsSafe(BuildContext context, IEnumerable<UnityEngine.Object> assets)
-{
-    if (context?.AssetSaver == null || assets == null) return;
-    foreach (var a in assets)
+    private static void SaveAssetsSafe(BuildContext context, IEnumerable<UnityEngine.Object> assets)
     {
-        if (a != null) context.AssetSaver.SaveAsset(a);
-    }
-}
-
-
-private static int FindEmoteControlIndex(VRCExpressionsMenu menu, int slot)
-{
-    if (menu?.controls == null) return -1;
-
-    for (int i = 0; i < menu.controls.Count; i++)
-    {
-        var c = menu.controls[i];
-        if (c?.parameter == null) continue;
-
-        if (c.parameter.name == EmoteParamName && Mathf.RoundToInt(c.value) == slot)
-            return i;
+        if (context?.AssetSaver == null || assets == null) return;
+        foreach (var a in assets)
+        {
+            if (a != null) context.AssetSaver.SaveAsset(a);
+        }
     }
 
-    int idx = slot - 1;
-    if (0 <= idx && idx < menu.controls.Count) return idx;
 
-    return -1;
-}
+    private static int FindEmoteControlIndex(VRCExpressionsMenu menu, int slot)
+    {
+        if (menu?.controls == null) return -1;
+
+        for (int i = 0; i < menu.controls.Count; i++)
+        {
+            var c = menu.controls[i];
+            if (c?.parameter == null) continue;
+
+            if (c.parameter.name == EmoteParamName && Mathf.RoundToInt(c.value) == slot)
+                return i;
+        }
+
+        int idx = slot - 1;
+        if (0 <= idx && idx < menu.controls.Count) return idx;
+
+        return -1;
+    }
 
     #endregion
 
